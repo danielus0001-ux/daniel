@@ -10,18 +10,30 @@
         body, html {
             margin: 0; padding: 0;
             min-height: 100vh;
-            /* 深邃的暗黑背景，带一点点极弱的深蓝中心光晕 */
             background-color: #030303;
-            background-image: radial-gradient(circle at 50% 15%, #10151a 0%, #030303 60%);
             color: #fff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
+            overflow-x: hidden;
         }
 
-        /* 顶部标题与搜索框区域 */
+        /* 动态星空画布，放在最底层 */
+        #warp-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* 顶部区域 */
         .header-container {
+            position: relative;
+            z-index: 1; /* 保证在星空之上 */
             text-align: center;
             margin-top: 80px;
             margin-bottom: 60px;
@@ -35,7 +47,6 @@
             letter-spacing: 8px;
             margin: 0 0 30px 0;
             color: #fff;
-            /* 还原图中的青色强发光效果 */
             text-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 40px rgba(0, 255, 255, 0.5);
         }
 
@@ -43,28 +54,27 @@
             width: 85%;
             max-width: 500px;
             padding: 15px 25px;
-            background: rgba(0, 20, 20, 0.2);
+            background: rgba(0, 20, 20, 0.6);
             border: 2px solid #0ff;
             border-radius: 30px;
             color: #0ff;
             font-size: 1rem;
             outline: none;
-            /* 内外发光效果 */
             box-shadow: 0 0 15px rgba(0, 255, 255, 0.15) inset, 0 0 15px rgba(0, 255, 255, 0.15);
             transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
         }
         
-        .search-bar::placeholder {
-            color: rgba(0, 255, 255, 0.6);
-        }
-        
+        .search-bar::placeholder { color: rgba(0, 255, 255, 0.5); }
         .search-bar:focus {
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3) inset, 0 0 25px rgba(0, 255, 255, 0.4);
-            background: rgba(0, 30, 30, 0.4);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4) inset, 0 0 25px rgba(0, 255, 255, 0.6);
+            background: rgba(0, 30, 30, 0.8);
         }
 
-        /* 游戏卡片网格布局 */
+        /* 游戏网格 */
         .grid-container {
+            position: relative;
+            z-index: 1; /* 保证在星空之上 */
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
@@ -73,7 +83,7 @@
             padding: 0 20px 100px 20px;
         }
 
-        /* 单个卡片的大外壳 */
+        /* 单个卡片 */
         .card-wrapper {
             position: relative;
             width: 280px;
@@ -81,11 +91,9 @@
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        .card-wrapper:hover {
-            transform: translateY(-12px);
-        }
+        .card-wrapper:hover { transform: translateY(-12px); }
 
-        /* 底部酷炫的青色梯形倒影 */
+        /* 全息倒影 */
         .card-shadow {
             position: absolute;
             bottom: -35px;
@@ -93,7 +101,6 @@
             width: 80%;
             height: 80px;
             background: linear-gradient(135deg, #0ff, #0077ff);
-            /* 裁切成倒置的梯形/三角形 */
             clip-path: polygon(0 0, 100% 0, 65% 100%, 35% 100%);
             z-index: 1;
             opacity: 0.8;
@@ -106,33 +113,22 @@
             filter: drop-shadow(0 0 25px #0ff) brightness(1.2);
         }
 
-        /* 主体黑色卡片 */
+        /* 黑色实体卡片 */
         .card-content {
             position: relative;
             z-index: 2;
-            background: #0b0b10; /* 极深的灰黑色 */
+            background: rgba(11, 11, 16, 0.85); /* 加入一点透明度，让星空能透过来一点点 */
+            backdrop-filter: blur(10px);
             border-radius: 15px;
             padding: 40px 20px;
             text-align: center;
             box-shadow: 0 15px 30px rgba(0,0,0,0.8);
-            border: 1px solid rgba(255,255,255,0.03); /* 微微的一层反光边框 */
+            border: 1px solid rgba(255,255,255,0.05);
         }
 
-        .card-content h3 {
-            margin: 0;
-            font-size: 1.5rem;
-            color: #fff;
-            text-shadow: 0 0 8px rgba(255,255,255,0.6);
-            letter-spacing: 1px;
-        }
+        .card-content h3 { margin: 0; font-size: 1.5rem; color: #fff; text-shadow: 0 0 8px rgba(255,255,255,0.6); letter-spacing: 1px; }
+        .card-content p { color: #888; font-size: 0.85rem; margin: 10px 0 35px 0; }
 
-        .card-content p {
-            color: #666;
-            font-size: 0.85rem;
-            margin: 10px 0 35px 0;
-        }
-
-        /* 紫红色 PLAY 按钮 */
         .play-btn {
             background: transparent;
             border: 2px solid #f0f;
@@ -156,12 +152,14 @@
 </head>
 <body>
 
+    <canvas id="warp-canvas"></canvas>
+
     <div class="header-container">
         <h1 class="portal-title">PORTAL</h1>
-        <input type="text" class="search-bar" placeholder="Initialize search sequence..." disabled>
+        <input type="text" id="searchInput" class="search-bar" placeholder="Enter game name to search...">
     </div>
 
-    <div class="grid-container">
+    <div class="grid-container" id="gameGrid">
 
         <div class="card-wrapper" onclick="location.href='game.html?folder=minecraft&v=new'">
             <div class="card-shadow"></div>
@@ -210,5 +208,67 @@
 
     </div>
 
+    <script>
+        // ------------------
+        // 1. 实时搜索过滤逻辑
+        // ------------------
+        const searchInput = document.getElementById('searchInput');
+        const cards = document.querySelectorAll('.card-wrapper');
+
+        searchInput.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            cards.forEach(card => {
+                const title = card.querySelector('h3').innerText.toLowerCase();
+                // 如果标题包含搜索词，显示；否则隐藏
+                if(title.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+
+        // ------------------
+        // 2. 双色赛博穿梭星空
+        // ------------------
+        const canvas = document.getElementById('warp-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, stars = [];
+        
+        function resize() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; }
+        window.addEventListener('resize', resize); resize();
+        
+        class Star {
+            constructor() { this.reset(); }
+            reset() { 
+                this.x = (Math.random() - 0.5) * 3000; 
+                this.y = (Math.random() - 0.5) * 3000; 
+                this.z = Math.random() * 2000; 
+                this.pz = this.z; 
+                // 随机分配青色或紫红色
+                this.color = Math.random() > 0.5 ? 'rgba(0, 255, 255, ' : 'rgba(255, 0, 255, ';
+            }
+            update() { this.z -= 12; if (this.z < 1) { this.reset(); this.z = 2000; this.pz = this.z; } }
+            draw() {
+                let sx = (this.x / this.z) * 400 + width / 2; let sy = (this.y / this.z) * 400 + height / 2;
+                let px = (this.x / this.pz) * 400 + width / 2; let py = (this.y / this.pz) * 400 + height / 2;
+                ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(sx, sy);
+                let alpha = 1 - (this.z / 2000);
+                ctx.lineWidth = alpha * 3; 
+                ctx.strokeStyle = this.color + alpha + ')'; 
+                ctx.stroke();
+                this.pz = this.z;
+            }
+        }
+        for (let i = 0; i < 300; i++) stars.push(new Star());
+        function animate() { 
+            ctx.fillStyle = 'rgba(3, 3, 3, 0.4)'; // 半透明拖影效果
+            ctx.fillRect(0, 0, width, height); 
+            stars.forEach(s => { s.update(); s.draw(); }); 
+            requestAnimationFrame(animate); 
+        }
+        animate();
+    </script>
 </body>
 </html>
