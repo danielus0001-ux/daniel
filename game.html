@@ -47,7 +47,7 @@
         function resize() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; }
         window.addEventListener('resize', resize); resize();
         class Star {
-            constructor() { this.reset(); }
+            constructor() { this.reset(); } 
             reset() { this.x = (Math.random() - 0.5) * 3000; this.y = (Math.random() - 0.5) * 3000; this.z = Math.random() * 2000; this.pz = this.z; }
             update() { this.z -= 10; if (this.z < 1) { this.reset(); this.z = 2000; this.pz = this.z; } }
             draw() {
