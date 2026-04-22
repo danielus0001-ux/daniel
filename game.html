@@ -36,10 +36,10 @@
         const p = new URLSearchParams(location.search);
         const f = p.get("folder");
         const g = games.find(x => x.id === f);
-        if(g){
+          if(g){
             document.getElementById("gameTitle").innerText = g.title;
-            // 直接读取精准路径
-            document.getElementById("frame").src = g.path;
+            // 🔥 加上动态时间戳，强制打碎套娃缓存！
+            document.getElementById("frame").src = g.path + "?t=" + new Date().getTime();
         }
         
         const canvas = document.getElementById('warp-canvas');
