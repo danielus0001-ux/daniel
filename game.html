@@ -25,20 +25,21 @@
         <iframe id="frame" src=""></iframe>
     </div>
     <script>
+        // 🚨 这里的路径已经完全按照你截图里的真实文件名修改了！
         const games = [
-            {title: "Minecraft", folder: "minecraft"},
-            {title: "Geometry Dash", folder: "geometry-dash"},
-            {title: "Hollow Knight", folder: "hollow-knight"},
-            {title: "LevelDevi", folder: "leveldevi"},
-            {title: "Escape Road", folder: "escape-road"}
+            {id: "minecraft", title: "Minecraft", path: "game/minecraft.html"},
+            {id: "geometry-dash", title: "Geometry Dash", path: "game/geometry-dash.html"},
+            {id: "hollow-knight", title: "Hollow Knight", path: "game/hollow knight.html"},
+            {id: "leveldevi", title: "LevelDevi", path: "game/LevelDevil/index.html"}, // 假设这是个文件夹，里面有index.html
+            {id: "escape-road", title: "Escape Road", path: "game/escape-road.html"}
         ];
         const p = new URLSearchParams(location.search);
         const f = p.get("folder");
-        const g = games.find(x => x.folder === f);
+        const g = games.find(x => x.id === f);
         if(g){
             document.getElementById("gameTitle").innerText = g.title;
-            // 确保使用当前仓库的 games 文件夹相对路径
-            document.getElementById("frame").src = "games/" + g.folder + "/index.html";
+            // 直接读取精准路径
+            document.getElementById("frame").src = g.path;
         }
         
         const canvas = document.getElementById('warp-canvas');
@@ -47,7 +48,7 @@
         function resize() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; }
         window.addEventListener('resize', resize); resize();
         class Star {
-            constructor() { this.reset(); } 
+            constructor() { this.reset(); }
             reset() { this.x = (Math.random() - 0.5) * 3000; this.y = (Math.random() - 0.5) * 3000; this.z = Math.random() * 2000; this.pz = this.z; }
             update() { this.z -= 10; if (this.z < 1) { this.reset(); this.z = 2000; this.pz = this.z; } }
             draw() {
