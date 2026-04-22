@@ -3,73 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyber Game Portal</title>
+    <title>PORTAL - Game Terminal</title>
     <style>
-        body, html { margin: 0; padding: 0; min-height: 100vh; background-color: #050505; color: #fff; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
-        #warp-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-        .container { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 50px 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
-        .header-title { grid-column: 1 / -1; text-align: center; font-size: 3rem; text-transform: uppercase; letter-spacing: 8px; margin-bottom: 40px; text-shadow: 0 0 20px #0ff; color: #fff; }
-        .card { background: rgba(15, 15, 15, 0.9); border: 2px solid #222; border-radius: 12px; overflow: hidden; cursor: pointer; transition: 0.3s ease; position: relative; }
-        .card:hover { transform: translateY(-10px); border-color: #0ff; box-shadow: 0 0 25px rgba(0, 255, 255, 0.4); }
-        .card-bg { height: 160px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: bold; transition: 0.5s; text-transform: uppercase; letter-spacing: 2px; }
-        .card:hover .card-bg { transform: scale(1.05); }
-        .card-info { padding: 15px; border-top: 1px solid #333; }
-        .card h3 { margin: 0; font-size: 1.2rem; color: #0ff; text-transform: uppercase; }
-        .card p { color: #888; font-size: 0.8rem; margin-top: 5px; }
+        * { box-sizing: border-box; }
+        
+        body, html {
+            margin: 0; padding: 0;
+            min-height: 100vh;
+            /* 深邃的暗黑背景，带一点点极弱的深蓝中心光晕 */
+            background-color: #030303;
+            background-image: radial-gradient(circle at 50% 15%, #10151a 0%, #030303 60%);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 顶部标题与搜索框区域 */
+        .header-container {
+            text-align: center;
+            margin-top: 80px;
+            margin-bottom: 60px;
+            width: 100%;
+        }
+
+        .portal-title {
+            font-size: 4rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            margin: 0 0 30px 0;
+            color: #fff;
+            /* 还原图中的青色强发光效果 */
+            text-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 40px rgba(0, 255, 255, 0.5);
+        }
+
+        .search-bar {
+            width: 85%;
+            max-width: 500px;
+            padding: 15px 25px;
+            background: rgba(0, 20, 20, 0.2);
+            border: 2px solid #0ff;
+            border-radius: 30px;
+            color: #0ff;
+            font-size: 1rem;
+            outline: none;
+            /* 内外发光效果 */
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.15) inset, 0 0 15px rgba(0, 255, 255, 0.15);
+            transition: all 0.3s ease;
+        }
+        
+        .search-bar::placeholder {
+            color: rgba(0, 255, 255, 0.6);
+        }
+        
+        .search-bar:focus {
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3) inset, 0 0 25px rgba(0, 255, 255, 0.4);
+            background: rgba(0, 30, 30, 0.4);
+        }
+
+        /* 游戏卡片网格布局 */
+        .grid-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 40px;
+            max-width: 1100px;
+            padding: 0 20px 100px 20px;
+        }
+
+        /* 单个卡片的大外壳 */
+        .card-wrapper {
+            position: relative;
+            width: 280px;
+            cursor: pointer;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .card-wrapper:hover {
+            transform: translateY(-12px);
+        }
+
+        /* 底部酷炫的青色梯形倒影 */
+        .card-shadow {
+            position: absolute;
+            bottom: -35px;
+            left: 10%;
+            width: 80%;
+            height: 80px;
+            background: linear-gradient(135deg, #0ff, #0077ff);
+            /* 裁切成倒置的梯形/三角形 */
+            clip-path: polygon(0 0, 100% 0, 65% 100%, 35% 100%);
+            z-index: 1;
+            opacity: 0.8;
+            transition: opacity 0.4s, filter 0.4s;
+            filter: drop-shadow(0 0 10px #0ff);
+        }
+
+        .card-wrapper:hover .card-shadow {
+            opacity: 1;
+            filter: drop-shadow(0 0 25px #0ff) brightness(1.2);
+        }
+
+        /* 主体黑色卡片 */
+        .card-content {
+            position: relative;
+            z-index: 2;
+            background: #0b0b10; /* 极深的灰黑色 */
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.03); /* 微微的一层反光边框 */
+        }
+
+        .card-content h3 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #fff;
+            text-shadow: 0 0 8px rgba(255,255,255,0.6);
+            letter-spacing: 1px;
+        }
+
+        .card-content p {
+            color: #666;
+            font-size: 0.85rem;
+            margin: 10px 0 35px 0;
+        }
+
+        /* 紫红色 PLAY 按钮 */
+        .play-btn {
+            background: transparent;
+            border: 2px solid #f0f;
+            color: #f0f;
+            padding: 10px 40px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        .card-wrapper:hover .play-btn {
+            background: #f0f;
+            color: #fff;
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.6);
+        }
     </style>
 </head>
 <body>
-    <canvas id="warp-canvas"></canvas>
-    <div class="container">
-        <h1 class="header-title">Game Center</h1>
-        
-        <div class="card" onclick="location.href='game.html?folder=minecraft'">
-            <div class="card-bg" style="background: linear-gradient(45deg, #1a2a6c, #11998e, #38ef7d); color: #fff; text-shadow: 0 0 10px #fff;">MC</div>
-            <div class="card-info"><h3>Minecraft</h3><p>Sandbox World</p></div>
-        </div>
 
-        <div class="card" onclick="location.href='game.html?folder=geometry-dash'">
-            <div class="card-bg" style="background: linear-gradient(45deg, #ff9966, #ff5e62); color: #fff; text-shadow: 0 0 10px #fff;">DASH</div>
-            <div class="card-info"><h3>Geometry Dash</h3><p>Rhythm Action</p></div>
-        </div>
-
-        <div class="card" onclick="location.href='game.html?folder=hollow-knight'">
-            <div class="card-bg" style="background: linear-gradient(45deg, #141e30, #243b55); color: #8a9bb8; text-shadow: 0 0 10px #8a9bb8;">KNIGHT</div>
-            <div class="card-info"><h3 style="color:#8a9bb8;">Hollow Knight</h3><p>Beneath Dirtmouth</p></div>
-        </div>
-
-        <div class="card" onclick="location.href='game.html?folder=leveldevi'">
-            <div class="card-bg" style="background: linear-gradient(45deg, #8E2DE2, #4A00E0); color: #fff; text-shadow: 0 0 10px #fff;">DEVI</div>
-            <div class="card-info"><h3 style="color:#f0f;">LevelDevi</h3><p>Custom Editor</p></div>
-        </div>
-
-        <div class="card" onclick="location.href='game.html?folder=escape-road'">
-            <div class="card-bg" style="background: linear-gradient(45deg, #f12711, #f5af19); color: #fff; text-shadow: 0 0 10px #fff;">ESCAPE</div>
-            <div class="card-info"><h3 style="color:#f5af19;">Escape Road</h3><p>Fast Racing</p></div>
-        </div>
+    <div class="header-container">
+        <h1 class="portal-title">PORTAL</h1>
+        <input type="text" class="search-bar" placeholder="Initialize search sequence..." disabled>
     </div>
 
-    <script>
-        const canvas = document.getElementById('warp-canvas');
-        const ctx = canvas.getContext('2d');
-        let width, height, stars = [];
-        function resize() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; }
-        window.addEventListener('resize', resize); resize();
-        class Star {
-            constructor() { this.reset(); }
-            reset() { this.x = (Math.random() - 0.5) * 3000; this.y = (Math.random() - 0.5) * 3000; this.z = Math.random() * 2000; this.pz = this.z; }
-            update() { this.z -= 10; if (this.z < 1) { this.reset(); this.z = 2000; this.pz = this.z; } }
-            draw() {
-                let sx = (this.x / this.z) * 400 + width / 2; let sy = (this.y / this.z) * 400 + height / 2;
-                let px = (this.x / this.pz) * 400 + width / 2; let py = (this.y / this.pz) * 400 + height / 2;
-                ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(sx, sy);
-                ctx.lineWidth = (1 - (this.z / 2000)) * 2; ctx.strokeStyle = `rgba(0, 255, 255, ${1 - (this.z / 2000)})`; ctx.stroke();
-                this.pz = this.z;
-            }
-        }
-        for (let i = 0; i < 400; i++) stars.push(new Star());
-        function animate() { ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'; ctx.fillRect(0, 0, width, height); stars.forEach(s => { s.update(); s.draw(); }); requestAnimationFrame(animate); }
-        animate();
-    </script>
+    <div class="grid-container">
+
+        <div class="card-wrapper" onclick="location.href='game.html?folder=minecraft&v=new'">
+            <div class="card-shadow"></div>
+            <div class="card-content">
+                <h3>Minecraft</h3>
+                <p>Sandbox / Technical</p>
+                <button class="play-btn">PLAY</button>
+            </div>
+        </div>
+
+        <div class="card-wrapper" onclick="location.href='game.html?folder=geometry-dash&v=new'">
+            <div class="card-shadow"></div>
+            <div class="card-content">
+                <h3>Geometry Dash</h3>
+                <p>Rhythm / Action</p>
+                <button class="play-btn">PLAY</button>
+            </div>
+        </div>
+
+        <div class="card-wrapper" onclick="location.href='game.html?folder=hollow-knight&v=new'">
+            <div class="card-shadow"></div>
+            <div class="card-content">
+                <h3>Hollow Knight</h3>
+                <p>Metroidvania</p>
+                <button class="play-btn">PLAY</button>
+            </div>
+        </div>
+
+        <div class="card-wrapper" onclick="location.href='game.html?folder=leveldevi&v=new'">
+            <div class="card-shadow"></div>
+            <div class="card-content">
+                <h3>LevelDevi</h3>
+                <p>Custom Editor</p>
+                <button class="play-btn">PLAY</button>
+            </div>
+        </div>
+
+        <div class="card-wrapper" onclick="location.href='game.html?folder=escape-road&v=new'">
+            <div class="card-shadow"></div>
+            <div class="card-content">
+                <h3>Escape Road</h3>
+                <p>Driving / Arcade</p>
+                <button class="play-btn">PLAY</button>
+            </div>
+        </div>
+
+    </div>
+
 </body>
 </html>
