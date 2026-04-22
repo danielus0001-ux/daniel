@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play - Cyber Portal</title>
+    <style>
+        body, html { margin: 0; padding: 0; min-height: 100vh; background-color: #000; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
+        #warp-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+        .header { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; position: relative; z-index: 10; }
+        .back-btn { padding: 8px 25px; background: transparent; border: 2px solid #0ff; color: #0ff; text-decoration: none; font-weight: bold; border-radius: 20px; text-transform: uppercase; transition: all 0.3s ease; box-shadow: 0 0 10px rgba(0, 255, 255, 0.3); }
+        .back-btn:hover { background: #0ff; color: #000; box-shadow: 0 0 20px rgba(0, 255, 255, 0.8); }
+        h1 { margin: 0; font-size: 2.5rem; text-transform: uppercase; letter-spacing: 3px; text-shadow: 0 0 10px #f0f, 0 0 20px #f0f; color: #fff; position: absolute; left: 50%; transform: translateX(-50%); }
+        .iframe-container { width: 95%; max-width: 1400px; margin: 10px auto; height: 80vh; border-radius: 12px; padding: 4px; background: linear-gradient(45deg, #0ff, #f0f); box-shadow: 0 0 30px rgba(255, 0, 255, 0.4); animation: pulse-border 2s infinite alternate; position: relative; z-index: 10; }
+        iframe { width: 100%; height: 100%; border: none; border-radius: 8px; background-color: #111; }
+        @keyframes pulse-border { 0% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.4); } 100% { box-shadow: 0 0 40px rgba(255, 0, 255, 0.6); } }
+    </style>
+</head>
+<body>
+    <canvas id="warp-canvas"></canvas>
+    
+    <div class="header">
+        <a href="https://henrypan-hello.github.io/Hello--/index.html" class="back-btn">< BACK</a>
+        <h1 id="gameTitle">LOADING...</h1>
+        <div style="width: 100px;"></div> </div>
+
+    <div class="iframe-container">
+        <iframe id="frame" src=""></iframe>
+    </div>
+
+    <div id="google_translate_element" style="display: none;"></div>
+
+    <script>
+        // 你原有的加载逻辑
+        const games = [
+            {title: "Minecraft", folder: "minecraft"},
+            {title: "Geometry Dash", folder: "geometry-dash"},
+            {title: "Hollow Knight", folder: "hollow-knight"},
+            {title: "Escape road", folder: "escape-road"}
+        ];
+        const p = new URLSearchParams(location.search);
+        const f = p.get("folder");
+        const g = games.find(x => x.folder === f);
+        if(g){
+            document.getElementById("gameTitle").innerText = g.title;
+            document.getElementById("frame").src = "https://henrypan-hello.github.io/Hello--/games/" + g.folder + "/index.html";
+        } else {
+            document.getElementById("gameTitle").innerText = "Game Not Found";
+        }
+
+        // 3D 星空穿梭特效 (与主页保持一致)
+        const canvas = document.getElementById('warp-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height; let stars = []; const numStars = 400; const speed = 5; const fov = 400;
+        function resize() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; }
+        window.addEventListener('resize', resize); resize();
+        class Star {
+            constructor() { this.reset(); }
+            reset() { this.x = (Math.random() - 0.5) * 3000; this.y = (Math.random() - 0.5) * 3000; this.z = Math.random() * 2000; this.pz = this.z; }
+            update() { this.z -= speed; if (this.z < 1) { this.reset(); this.z = 2000; this.pz = this.z; } }
+            draw() {
+                let sx = (this.x / this.z) * fov + width / 2; let sy = (this.y / this.z) * fov + height / 2;
+                let px = (this.x / this.pz) * fov + width / 2; let py = (this.y / this.pz) * fov + height / 2;
+                let depthRatio = 1 - (this.z / 2000);
+                ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(sx, sy);
+                ctx.lineWidth = depthRatio * 3; ctx.strokeStyle = `rgba(0, 255, 255, ${depthRatio})`; ctx.stroke();
+                this.pz = this.z;
+            }
+        }
+        for (let i = 0; i < numStars; i++) stars.push(new Star());
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'; ctx.fillRect(0, 0, width, height);
+            stars.forEach(star => { star.update(); star.draw(); }); requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+</html>
