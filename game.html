@@ -43,7 +43,7 @@
         const g = games.find(x => x.folder === f);
         if(g){
             document.getElementById("gameTitle").innerText = g.title;
-            document.getElementById("frame").src = "games/" + g.folder + "/index.html";
+            document.getElementById("frame").src = "https://henrypan-hello.github.io/Hello--/games/" + g.folder + "/index.html";
         } else {
             document.getElementById("gameTitle").innerText = "Game Not Found";
         }
