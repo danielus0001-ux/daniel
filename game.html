@@ -26,20 +26,25 @@
     </div>
     <script>
         // 🚨 这里的路径已经完全按照你截图里的真实文件名修改了！
+        // 游戏数据库：注意每一行末尾必须有逗号！
         const games = [
-            {id: "stickman", title: "Stickman Climb", path: "game/stickmanclimb/index.html"}
             {id: "minecraft", title: "Minecraft", path: "game/minecraft.html"},
             {id: "geometry-dash", title: "Geometry Dash", path: "game/geometry-dash.html"},
             {id: "hollow-knight", title: "Hollow Knight", path: "game/hollow-knight.html"},
-            {id: "leveldevi", title: "LevelDevi", path: "game/LevelDevil/index.html"}, // 假设这是个文件夹，里面有index.html
-            {id: "escape-road", title: "Escape Road", path: "game/escape-road.html"}
+            {id: "leveldevi", title: "LevelDevi", path: "game/LevelDevil/index.html"},
+            {id: "escape-road", title: "Escape Road", path: "game/escape-road.html"},
+            {id: "stickman", title: "Stickman Climb", path: "game/stickmanclimb/index.html"},
+            {id: "slope", title: "Slope Game", path: "game/Slope-Game/index.html"}
         ];
+
         const p = new URLSearchParams(location.search);
         const f = p.get("folder");
         const g = games.find(x => x.id === f);
-          if(g){
+        
+        if(g){
+            // 找到游戏后，替换标题
             document.getElementById("gameTitle").innerText = g.title;
-            // 🔥 加上动态时间戳，强制打碎套娃缓存！
+            // 加上动态时间戳，强制破除缓存加载游戏
             document.getElementById("frame").src = g.path + "?t=" + new Date().getTime();
         }
         
