@@ -127,6 +127,24 @@
 
     <div class="grid-container" id="gameGrid">
 
+        <div class="card-wrapper" onclick="window.open('amongus/index.html', '_blank')">
+            <div class="card-shadow"></div>
+            <div class="card-content">
+                <h3>Among Us</h3>
+                <p data-i18n="tagAmongUs">社交推理 / 派对</p>
+                <button class="play-btn" data-i18n="playBtn">开始</button>
+            </div>
+        </div>
+
+        <div class="card-wrapper" onclick="window.open('2048/index.html', '_blank')">
+            <div class="card-shadow"></div>
+            <div class="card-content">
+                <h3>2048</h3>
+                <p data-i18n="tag2048">益智 / 数字</p>
+                <button class="play-btn" data-i18n="playBtn">开始</button>
+            </div>
+        </div>
+
         <div class="card-wrapper" onclick="window.open('ovo/index.html', '_blank')">
             <div class="card-shadow"></div>
             <div class="card-content">
@@ -193,13 +211,15 @@
     </div>
 
     <script>
-        // 🌐 多语言词典（已加入 OvO 的翻译）
+        // 🌐 多语言词典（已加入 Among Us 和 2048 的翻译）
         const i18n = {
             zh: {
                 pageTitle: "PORTAL - 游戏终端",
                 mainTitle: "传送门",
                 searchPlaceholder: "输入游戏名称进行搜索...",
                 playBtn: "开始",
+                tagAmongUs: "社交推理 / 派对",
+                tag2048: "益智 / 数字",
                 tagOvo: "平台跳跃 / 跑酷",
                 tagStickman: "物理 / 攀岩",
                 tagMinecraft: "沙盒 / 技术",
@@ -213,6 +233,8 @@
                 mainTitle: "PORTAL",
                 searchPlaceholder: "Enter game name to search...",
                 playBtn: "PLAY",
+                tagAmongUs: "Social Deduction / Party",
+                tag2048: "Puzzle / Numbers",
                 tagOvo: "Platformer / Speedrun",
                 tagStickman: "Physics / Climbing",
                 tagMinecraft: "Sandbox / Technical",
@@ -226,6 +248,8 @@
                 mainTitle: "PORTAL",
                 searchPlaceholder: "Introduce el nombre del juego...",
                 playBtn: "JUGAR",
+                tagAmongUs: "Deducción Social / Fiesta",
+                tag2048: "Puzle / Números",
                 tagOvo: "Plataformas / Speedrun",
                 tagStickman: "Física / Escalada",
                 tagMinecraft: "Sandbox / Técnico",
