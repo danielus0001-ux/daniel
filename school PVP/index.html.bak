@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Hollow Knight: 南山校长传说 (纯净无声版)</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #020205; color: white; font-family: 'Times New Roman', serif; }
+        canvas { display: block; margin: 0 auto; box-shadow: inset 0 0 150px rgba(0,0,0,1); cursor: crosshair; }
+        #ui { position: absolute; top: 20px; left: 20px; text-shadow: 2px 2px 2px #000; z-index: 10; pointer-events: none; }
+        .bar-bg { width: 200px; height: 12px; background: #222; border: 2px solid #555; margin-top: 5px; margin-bottom: 5px; }
+        .hp-fill { height: 100%; background: #eee; transition: width 0.1s; }
+        .soul-fill { height: 100%; background: #00e5ff; transition: width 0.2s; box-shadow: 0 0 10px #00e5ff; }
+        #boss-ui { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); text-align: center; display: none; z-index: 10; pointer-events: none; }
+        #boss-name { font-size: 24px; letter-spacing: 5px; color: #fff; margin-bottom: 8px; text-shadow: 0 0 10px #f00; transition: color 1s;}
+        .boss-bar-bg { width: 600px; height: 6px; background: #111; border: 1px solid #444; }
+        .boss-fill { height: 100%; background: #c23b22; transition: width 0.1s; }
+        .instruction { font-size: 14px; color: #aaa; margin-top: 15px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; border: 1px solid #333; line-height: 1.6;}
+        #warning { position: absolute; top: 30%; left: 50%; transform: translateX(-50%); font-size: 36px; color: #ff3333; font-weight: bold; text-shadow: 0 0 20px #f00; display: none; z-index: 10; pointer-events: none; text-align: center;}
+        b.highlight { color: #00e5ff; transition: all 0.5s; } 
+        b.dash { color: #fff; text-shadow: 0 0 8px #fff; border-bottom: 1px dotted #fff; }
+        b.hek-hong { color: #fff; text-shadow: 0 0 10px #fff, 0 0 20px #bf9418; background: #000; padding: 0 3px;}
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div>Hubble (HP): <span id="player-hp">25</span> / 25</div>
+        <div class="bar-bg"><div class="hp-fill" id="hp-bar" style="width: 100%;"></div></div>
+        <div>红温指数 (Soul): <span id="player-soul">0</span> / 99</div>
+        <div class="bar-bg"><div class="soul-fill" id="soul-bar" style="width: 0%;"></div></div>
+        <div id="player-status"></div>
+        <div class="instruction">
+            [A/D] 移动 | [W/空格] 大小跳 | <b class="dash">[L] 黑冲</b><br>
+            [J] 肘击 | [W+J] 上劈 | 空中[S+J] 下劈<br>
+            <b class="highlight" id="spell-ui">[K] 白波</b> | <b>[S+K] 黑砸</b> | <b id="heal-ui">[长按 F] 回血</b><br>
+            <span style="color:#aaa">结束时按 [R] 键一键重开。</span>
+        </div>
+    </div>
+    <div id="boss-ui"><div id="boss-name">evergreen 校 长</div><div class="boss-bar-bg"><div class="boss-fill" id="boss-hp" style="width: 100%;"></div></div></div>
+    <div id="warning"></div>
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; } window.addEventListener('resize', resize); resize();
+
+const keys = { w:false, a:false, s:false, d:false, j:false, k:false, f:false, l:false, r:false, space:false };
+const prevKeys = { w:false, a:false, s:false, d:false, j:false, k:false, f:false, l:false, r:false, space:false };
+
+let hitStopFrames = 0, screenShake = 0, particles = [], projectiles = [], playerProjectiles = [], enemies = [], props = [], shockwaves = [], homeworks = [];
+let gameVictory = false, gameOver = false; 
+const map = { floor: 650, spikes: [ {x: 400, y: 630, w: 200, h: 20} ], walls: [ {x: 50, y:-500, w: 20, h:1500}, {x: 1400, y:-500, w: 20, h:1500} ], magma: false };
+
+function showWarning(text, duration = 3000) { const w = document.getElementById('warning'); w.innerHTML = text; w.style.display = 'block'; setTimeout(() => w.style.display = 'none', duration); }
+window.addEventListener('keydown', e => { let k = e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k]=true; if(k===' ') keys.space=true; if(k==='arrowup') keys.w=true; if(k==='arrowdown') keys.s=true; if(k==='arrowleft') keys.a=true; if(k==='arrowright') keys.d=true;});
+window.addEventListener('keyup', e => { let k = e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k]=false; if(k===' ') keys.space=false; if(k==='arrowup') keys.w=false; if(k==='arrowdown') keys.s=false; if(k==='arrowleft') keys.a=false; if(k==='arrowright') keys.d=false;});
+
+function spawnParticles(x, y, color, count, speed, lifeMult = 1.0) { for(let i=0; i<count; i++) particles.push({ x, y, vx: (Math.random()-0.5)*speed, vy: (Math.random()-0.5)*speed - 2, life: 1.0, color, size: Math.random()*3+2, lifeMult }); }
+function checkRectOverlap(r1, r2) { if(!r1 || !r2) return false; return r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y < r2.y + r2.h && r1.y + r1.h > r2.y; }
+function resCollisionX(obj, tar) { if(!checkRectOverlap(obj, tar)) return false; if(obj.vx > 0) obj.x = tar.x - obj.w; else if(obj.vx < 0) obj.x = tar.x + tar.w; obj.vx = 0; return true; }
+function resCollisionY(obj, tar) { if(!checkRectOverlap(obj, tar)) return false; if(obj.vy > 0) { obj.y = tar.y - obj.h; obj.vy = 0; return "grounded"; } else if(obj.vy < 0) { obj.y = tar.y + tar.h; obj.vy = 0; } return "none"; }
+
+// ================= 玩家类 =================
+const player = {
+    x: 200, y: 500, w: 30, h: 45, vx: 0, vy: 0, speed: 7, jumpPower: -14, gravity: 0.7, maxFallSpeed: 15, facing: 1, hp: 25, maxHp: 25, soul: 0, maxSoul: 99,
+    coyoteFrames: 0, jumpBufferFrames: 0, isGrounded: false, canDJ: true, invincible: 0, isDash: false, dashD: 0, dashC: 0, dashSpeed: 20,
+    isDive: false, attackT: 0, attackD: 'fw', spellC: 0, isFocus: false, focusT: 0, hekHong: false, attackDmg: 10,
+
+    updateUI() {
+        document.getElementById('player-hp').innerText = this.hp; document.getElementById('hp-bar').style.width = (this.hp/this.maxHp*100) + '%';
+        document.getElementById('player-soul').innerText = this.soul; document.getElementById('soul-bar').style.width = (this.soul/this.maxSoul*100) + '%';
+        if(this.hekHong) document.getElementById('player-status').innerHTML = '<b class="hek-hong">状态: 觉醒 (强化)</b>';
+    },
+
+    activateHekHong() {
+        if(this.hekHong) return; this.hekHong = true; this.attackDmg = 18; this.updateUI();
+        let sUI = document.getElementById('spell-ui'); sUI.innerText = "[K] 黑波 (巨伤)"; sUI.style.color = "#000"; sUI.style.textShadow = "0 0 10px #bf9418";
+        document.getElementById('heal-ui').innerText = "[长按 F] 深渊回血";
+        spawnParticles(this.x+15, this.y+20, '#fff', 50, 8); spawnParticles(this.x+15, this.y+20, '#bf9418', 50, 10);
+    },
+
+    update() {
+        if(this.hp <= 0) return;
+        let jp = (keys.w || keys.space) && !(prevKeys.w || prevKeys.space); let jr = !(keys.w || keys.space) && (prevKeys.w || prevKeys.space);
+        let ap = keys.j && !prevKeys.j; let sp = keys.k && !prevKeys.k; let dp = keys.l && !prevKeys.l;
+
+        if (this.isGrounded) this.coyoteFrames = 6; else this.coyoteFrames--; if (jp) this.jumpBufferFrames = 6; else this.jumpBufferFrames--;
+
+        if(this.isDive) {
+            this.vx *= 0.5; this.vy = 28; this.invincible = 10;
+            spawnParticles(this.x+15, this.y, this.hekHong?'#bf9418':'#00e5ff', 3, 2);
+            if(this.y + this.h >= map.floor) {
+                this.isDive = false; this.y = map.floor - this.h; this.invincible = 45; screenShake = 35;
+                shockwaves.push({ x: this.x + 15, y: map.floor, life: 25, maxLife: 25, isBlack: this.hekHong });
+                let hb = {x:this.x-130, y:this.y-100, w:290, h:150};
+                if(boss.active && boss.hp>0 && checkRectOverlap(hb, boss)) boss.takeDamage(40, this.x);
+                enemies.forEach(e => {if(checkRectOverlap(hb, e)) e.takeDamage(40, this.x);}); props.forEach(p => {if(checkRectOverlap(hb, p)) p.takeDamage(40);});
+            }
+        }
+
+        if (dp && this.dashC <= 0 && !this.isDash && !this.isDive && !this.isFocus) {
+            this.isDash = true; this.dashD = 14; this.dashC = 45; this.vy = 0; this.invincible = 16;
+            spawnParticles(this.x+15, this.y+20, '#000', 20, 5); screenShake = 3;
+        }
+
+        if(keys.f && this.isGrounded && this.hp < this.maxHp && this.soul >= 33 && this.invincible <= 0 && !this.isDive && !this.isDash) {
+            this.isFocus = true; this.vx = 0; this.focusT++;
+            if(this.focusT >= 60) { 
+                this.hp = Math.min(this.maxHp, this.hp + (this.hekHong ? 2 : 1)); this.soul -= 33; this.focusT = 0; this.updateUI(); 
+                spawnParticles(this.x+15, this.y+20, this.hekHong ? '#bf9418' : '#fff', 50, 10); 
+                shockwaves.push({ x: this.x+15, y: this.y+20, type: 'heal_burst', life: 15, maxLife: 15, isBlack: this.hekHong }); screenShake = 8;
+            }
+        } else { this.isFocus = false; this.focusT = 0; }
+
+        if(!this.isFocus && !this.isDive && !this.isDash) {
+            if(this.invincible > 45) { this.vx *= 0.9; } 
+            else { if(keys.a) { this.vx = -this.speed; this.facing = -1; } else if(keys.d) { this.vx = this.speed; this.facing = 1; } else { this.vx = 0; } }
+
+            if(this.jumpBufferFrames > 0 && this.coyoteFrames > 0) { this.vy = this.jumpPower; this.jumpBufferFrames = 0; this.isGrounded = false; } 
+            else if (jp && this.canDJ && !this.isGrounded) { this.vy = this.jumpPower * 0.85; this.canDJ = false; spawnParticles(this.x+15, this.y+this.h, '#fff', 10, 3); }
+            if (jr && this.vy < 0) this.vy *= 0.4;
+
+            if(sp && this.spellC <= 0 && this.soul >= 33) {
+                if(!this.isGrounded && keys.s) { this.isDive = true; this.soul -= 33; this.spellC = 40; } 
+                else {
+                    this.soul -= 33; this.spellC = 30; this.vx = this.facing * -5; screenShake = 10;
+                    playerProjectiles.push({ x: this.facing===1?this.x+this.w:this.x-(this.hekHong?130:90), y:this.y-25, vx: this.facing * (this.hekHong?28:18), w: this.hekHong?130:90, h: this.hekHong?80:55, life: 100, facing: this.facing, isBlack: this.hekHong, animFrame: 0 });
+                } this.updateUI();
+            }
+
+            if(ap && this.attackT <= 0) {
+                this.attackT = 16; this.attackD = keys.w?'up':(keys.s&&!this.isGrounded?'down':'fw');
+                let ab = { w: 75, h: 75 };
+                if(this.attackD==='up'){ab.x=this.x-22; ab.y=this.y-65;} else if(this.attackD==='down'){ab.x=this.x-22; ab.y=this.y+this.h;} else{ab.x=this.facing===1?this.x+this.w:this.x-ab.w; ab.y=this.y-15;}
+                
+                let hit = false;
+                if(boss.active && boss.hp>0 && checkRectOverlap(ab, boss)) { boss.takeDamage(this.attackDmg, this.x); hit=true; }
+                enemies.forEach(e=>{if(checkRectOverlap(ab,e)){e.takeDamage(this.attackDmg, this.x);hit=true;}}); props.forEach(p=>{if(checkRectOverlap(ab,p)){p.takeDamage(this.attackDmg);hit=true;}});
+                map.spikes.forEach(s=>{if(this.attackD==='down'&&checkRectOverlap(ab,s)){hit=true; spawnParticles(this.x,this.y+this.h,'#fff',15,8);}});
+                homeworks.forEach(hw=>{if(this.attackD==='down'&&checkRectOverlap(ab,hw)){hit=true; spawnParticles(this.x,this.y+this.h,'#fff',15,8);}});
+                if(hit) { this.handleHitFB(); this.soul=Math.min(this.maxSoul, this.soul+ (this.hekHong?16:11)); this.updateUI(); }
+            }
+        }
+
+        if (this.isDash) { this.vx = this.facing * this.dashSpeed; this.dashD--; if(this.dashD%2===0) spawnParticles(this.x+15, this.y+20, '#111', 1, 0); if(this.dashD<=0) this.isDash=false; }
+        else if (!this.isDive) { this.vy += this.gravity; if(this.vy > this.maxFallSpeed) this.vy = this.maxFallSpeed; }
+
+        this.x += this.vx; map.walls.forEach(w => resCollisionX(this, w)); props.forEach(p => resCollisionX(this, p)); if(boss.isCorpse) resCollisionX(this, boss);
+        this.y += this.vy; this.isGrounded = false;
+        
+        if(this.y + this.h >= map.floor && !this.isDive) { this.y = map.floor - this.h; this.vy = 0; this.isGrounded = true; this.canDJ = true; }
+        props.forEach(p => { if(resCollisionY(this, p) === "grounded") { this.isGrounded = true; this.canDJ = true; } });
+        if(boss.isCorpse && resCollisionY(this, boss) === "grounded") { this.isGrounded = true; this.canDJ = true; }
+
+        if(map.magma && this.isGrounded && this.y+this.h >= map.floor && this.invincible <= 0) { this.takeDamage(this.x, (boss.isUltra?2:1)); this.vy = -10; spawnParticles(this.x+15, this.y+this.h, '#ff4500', 20, 8); }
+        if(this.invincible <= 0 && this.vy > 0 && !this.isDive) map.spikes.forEach(s => { if(checkRectOverlap(this, s)) this.takeDamage(s.x + s.w/2, 1); });
+
+        if(this.attackT>0) this.attackT--; if(this.spellC>0) this.spellC--; if(this.invincible>0) this.invincible--; if(this.dashC>0) this.dashC--;
+    },
+
+    handleHitFB() { hitStopFrames = 4; screenShake = 12; if(this.attackD === 'down') { this.vy = -13; this.canDJ = true; } else if(this.attackD === 'up') {this.vy += 2;} else { this.vx = this.facing * -6; } },
+    takeDamage(sourceX, dmg = 1) { 
+        if(this.invincible > 0 || gameVictory) return; this.hp -= dmg; this.hp = Math.max(0, this.hp);
+        this.invincible = 60; this.focusT = 0; this.isFocus = false; this.vy = -8; 
+        if(sourceX !== undefined) this.vx = this.x > sourceX ? 12 : -12; 
+        this.updateUI(); screenShake = (dmg>1?25:15); hitStopFrames=5; 
+        if(this.hp <= 0) { gameOver = true; }
+    },
+    
+    draw() {
+        if(this.invincible > 0 && Math.floor(Date.now()/100)%2===0 && !this.isDash) return;
+        
+        if(this.isFocus && this.focusT > 0) {
+            let p = this.focusT / 60; let r = 80 - p * 60;
+            ctx.save(); ctx.translate(this.x+15, this.y+22); ctx.rotate(p * Math.PI * 4);
+            ctx.strokeStyle = this.hekHong ? `rgba(191,148,24,${1-p})` : `rgba(255,255,255,${1-p})`; ctx.lineWidth = 2;
+            for(let i=0; i<4; i++) { ctx.beginPath(); ctx.arc(0, 0, r, i*Math.PI/2, i*Math.PI/2 + Math.PI/4); ctx.stroke(); }
+            ctx.restore();
+            ctx.fillStyle = this.hekHong ? `rgba(191,148,24,${p*0.8})` : `rgba(255,255,255,${p*0.8})`; 
+            ctx.beginPath(); ctx.arc(this.x+15, this.y+22, 25, 0, Math.PI*2); ctx.fill();
+        }
+
+        ctx.fillStyle = this.isDash ? '#000' : '#fff'; ctx.beginPath(); ctx.arc(this.x+15, this.y+12, 14, 0, Math.PI*2); ctx.fill();
+        if(!this.isDash) { ctx.fillStyle = '#000'; let eyeOff = this.facing===1 ? 5 : -5; ctx.beginPath(); ctx.ellipse(this.x+15+eyeOff, this.y+10, 3, 6, 0, 0, Math.PI*2); ctx.fill(); }
+        
+        if(this.isDash) { ctx.fillStyle = '#000'; ctx.shadowColor = '#555'; ctx.shadowBlur = 10; }
+        else if(this.hekHong) { ctx.fillStyle = '#000'; ctx.shadowColor = '#bf9418'; ctx.shadowBlur = 10; } else { ctx.fillStyle = '#222'; ctx.shadowBlur = 0; }
+        ctx.beginPath(); ctx.moveTo(this.x+5, this.y+20); ctx.lineTo(this.x+25, this.y+20); let sway = this.vx*0.8; ctx.lineTo(this.x+25-sway, this.y+this.h); ctx.lineTo(this.x+5-sway, this.y+this.h); ctx.fill(); ctx.shadowBlur = 0;
+
+        if(this.attackT > 8) {
+            ctx.save(); ctx.translate(this.x+15, this.y+22);
+            if(this.facing === -1 && this.attackD === 'fw') { ctx.scale(-1, 1); }
+            ctx.shadowColor = this.hekHong ? '#bf9418' : '#fff'; ctx.shadowBlur = 15;
+            ctx.fillStyle = this.hekHong ? '#bf9418' : '#fff';
+            ctx.beginPath();
+            if(this.attackD === 'up') { ctx.arc(0, 0, 60, Math.PI, Math.PI*2); ctx.arc(0, -10, 45, Math.PI*2, Math.PI, true); } 
+            else if (this.attackD === 'down') { ctx.arc(0, 0, 60, 0, Math.PI); ctx.arc(0, 10, 45, Math.PI, 0, true); } 
+            else { ctx.arc(0, 0, 55, -Math.PI/2, Math.PI/2); ctx.arc(10, 0, 40, Math.PI/2, -Math.PI/2, true); }
+            ctx.fill(); ctx.restore();
+        }
+    }
+};
+
+// ================= 敌人类 =================
+class Teacher {
+    constructor(x, y) { this.x=x; this.y=y; this.w=40; this.h=60; this.hp=30; this.vx=2; this.pVx=0; }
+    update() { this.x += this.vx + this.pVx; this.pVx *= 0.8; if(this.x<100||this.x>1300) this.vx*=-1; if(checkRectOverlap(this, player)) player.takeDamage(this.x + this.w/2, (boss.isUltra?2:1)); }
+    takeDamage(dmg, sourceX) { this.hp-=dmg; if(sourceX !== undefined) this.pVx = this.x > sourceX ? 8 : -8; spawnParticles(this.x+20, this.y+30, '#ffd700', 10, 4); }
+    draw() { ctx.fillStyle = '#b8860b'; ctx.fillRect(this.x, this.y, this.w, this.h); ctx.fillStyle='#fff'; ctx.fillRect(this.x+5, this.y+10, 30, 10);}
+}
+
+class Prop {
+    constructor(x, y, type) { this.x=x; this.y=y; this.type=type; this.w=type==='AC'?80:100; this.h=type==='AC'?40:80; this.hp=50; this.timer=0; }
+    update() { this.timer++; if(this.type==='AC' && this.timer%60===0 && boss.active && boss.hp>0 && boss.hp<boss.maxHp) { boss.hp+=5; spawnParticles(this.x+this.w/2, this.y, '#00ff00', 5, 2); document.getElementById('boss-hp').style.width=(boss.hp/boss.maxHp*100)+'%';}
+        if(this.type==='ACOutdoor' && this.timer%10===0) spawnParticles(this.x+this.w/2, this.y, '#ff4500', 2, 5); }
+    takeDamage(dmg) { this.hp-=dmg; spawnParticles(this.x+50, this.y+40, '#ccc', 10, 5); }
+    draw() {
+        ctx.fillStyle = '#ddd'; ctx.fillRect(this.x, this.y, this.w, this.h); ctx.fillStyle='#333';
+        if(this.type==='AC') ctx.fillRect(this.x+10, this.y+10, 60, 5);
+        else { ctx.beginPath(); ctx.arc(this.x+50, this.y+40, 30, 0, Math.PI*2); ctx.stroke(); ctx.save(); ctx.translate(this.x+50, this.y+40); ctx.rotate(this.timer*0.2); ctx.fillRect(-25,-5,50,10); ctx.fillRect(-5,-25,10,50); ctx.restore(); }
+    }
+}
+
+// ================= Boss类 =================
+const boss = {
+    x: 1000, y: 400, w: 60, h: 90, hp: 400, maxHp: 400, state: 'idle', stateT: 0, alpha: 1, active: false, p2: false, p3: false, vx: 0, isCorpse: false, isUltra: false, ultraAnimT: 0, 
+    getHitbox() { return {x:this.x, y:this.y, w:this.w, h:this.h}; },
+
+    initUltra() {
+        showWarning("<b style='color:#bf9418'>无 上 校 长</b><br>降 临", 4000);
+        document.getElementById('boss-name').innerText = "无 上 校 长"; document.getElementById('boss-name').style.color = "#bf9418"; document.getElementById('boss-name').style.textShadow = "0 0 15px #fff";
+        this.isUltra = true; this.isCorpse = false; this.hp = 200; this.maxHp = 200; this.x = 750; this.y = 300; this.w = 50; this.h = 80; 
+        this.state = 'idle'; this.stateT = 60; this.alpha = 1; this.p2 = false; this.p3 = false; player.activateHekHong(); screenShake = 50;
+    },
+
+    update() {
+        if(gameVictory || gameOver) return;
+        if(this.isCorpse) { this.ultraAnimT++; if(this.ultraAnimT % 20 === 0) { screenShake = 5; spawnParticles(this.x+30, this.y+45, '#bf9418', 5, 5); spawnParticles(this.x+30, this.y+45, '#222', 10, 6, 2.0); }
+            if(this.ultraAnimT >= 180) this.initUltra(); return; 
+        }
+        if(this.hp <= 0 && !this.isUltra) return;
+        
+        if(!this.active && Math.abs(player.x - this.x) < 500) { 
+            this.active = true; document.getElementById('boss-ui').style.display='block'; 
+        }
+        if(!this.active) return;
+        
+        if(!this.isUltra) {
+            if(this.hp <= 200 && !this.p2) { this.p2 = true; showWarning("二阶段：校长召唤老师！"); enemies.push(new Teacher(400, map.floor-60), new Teacher(1200, map.floor-60)); }
+            if(this.hp <= 133 && !this.p3) { this.p3 = true; showWarning("三阶段：空调岩浆开启！"); props.push(new Prop(200, map.floor-150, 'AC'), new Prop(1200, map.floor-80, 'ACOutdoor')); screenShake=30; }
+        }
+
+        this.stateT--;
+        switch(this.state) {
+            case 'idle':
+                this.y += Math.sin(Date.now() / (this.isUltra?150:300)) * (this.isUltra?3:1.5);
+                if(this.stateT<=0) { let r=Math.random(); 
+                    if(this.isUltra) {
+                        if(r<0.33) { this.state = 'ultraDash'; this.stateT = 30; this.dashDir = (player.x > this.x ? 1 : -1); }
+                        else if(r<0.66) { this.state = 'dive'; this.stateT = 60; }
+                        else { this.state = 'homework'; this.stateT = 100; } 
+                    } else { 
+                        if(r<0.3){this.state='teleportOut';this.stateT=20;} else if(r<0.6){this.state='cast';this.stateT=60;} else if(r<0.8) {this.state='dive';this.stateT=90;} 
+                        else {this.state = 'homework'; this.stateT = 120;} 
+                    } 
+                } break;
+            case 'teleportOut': this.alpha -= 0.05; if(this.stateT<=0){ this.x=player.x+(Math.random()>0.5?200:-200); this.y=player.y-100; if(this.x<100)this.x=100; if(this.x>1300)this.x=1300; this.state='teleportIn'; this.stateT=20; this.vx = 0;} break;
+            case 'teleportIn': this.alpha += 0.05; if(this.stateT<=0){this.state='idle';this.stateT=40;} break;
+            case 'cast': this.y += Math.sin(Date.now()/200)*2; if(this.stateT===30||this.stateT===10){spawnParticles(this.x+30,this.y+20,'#ff4da6',10,3); projectiles.push({x:this.x+30,y:this.y+20,vx:(player.x-this.x)*0.01,vy:-3,life:180,type:'homing'}); } if(this.stateT<=0){this.state='idle';this.stateT=30;} break;
+            case 'dive': let diveSpeed = (this.isUltra ? 25 : 15); if(this.stateT>(this.isUltra?40:70)) this.y-=3; else if(this.stateT===(this.isUltra?40:70)) { this.x=player.x; } else if(this.stateT<(this.isUltra?30:60) && this.y+this.h<map.floor) this.y+=diveSpeed; else if(this.y+this.h>=map.floor&&this.stateT>10){ this.y=map.floor-this.h; if(this.stateT===(this.isUltra?29:59)){screenShake=(this.isUltra?30:20);spawnParticles(this.x+30,this.y+this.h,(this.isUltra?'#bf9418':'#f00'),40,10); } } if(this.stateT<=0){this.state='idle';this.stateT=(this.isUltra?20:50);} break;
+            case 'ultraDash': this.vx = this.dashDir * 25; this.y += Math.sin(Date.now()/50)*5; if(this.stateT % 2 === 0) spawnParticles(this.x+25, this.y+40, '#bf9418', 3, 2); if(this.x<70 || this.x > 1400-this.w || this.stateT <= 0) { this.vx = 0; this.state = 'idle'; this.stateT = 15; } break;
+            case 'homework':
+                if(this.stateT === (this.isUltra?90:110)) {
+                    this.y -= 20; 
+                    let hwCount = this.isUltra ? 6 : 3;
+                    for(let i=0; i<hwCount; i++) {
+                        let hwX = player.x + (Math.random()-0.5)*800; if(hwX < 100) hwX = 100; if(hwX > 1300) hwX = 1300;
+                        homeworks.push({ x: hwX - 40, y: map.floor - 900, w: 80, h: 120, vy: this.isUltra ? 40 : 25, state: 'warning', timer: this.isUltra ? 30 : 50, alpha: 1 });
+                    }
+                }
+                if(this.stateT <= 0) { this.state = 'idle'; this.stateT = 40; } break;
+        }
+
+        this.x += this.vx; this.vx *= 0.85; if(this.isUltra) { if(this.x < 70) this.x = 70; if(this.x > 1400 - this.w) this.x = 1400 - this.w; }
+        if(this.alpha > 0.5 && checkRectOverlap(this.getHitbox(), player)) player.takeDamage(this.x + this.w/2, (this.isUltra?2:1));
+    },
+
+    takeDamage(dmg, sourceX) {
+        if(this.alpha < 0.5 || this.isCorpse || gameVictory) return; this.hp -= dmg; this.hp = Math.max(0, this.hp);
+        if(sourceX !== undefined) this.vx = this.x > sourceX ? (this.isUltra?2:5) : (this.isUltra?-2:-5);
+        document.getElementById('boss-hp').style.width=(this.hp/this.maxHp*100)+'%'; spawnParticles(this.x+30, this.y+45, (this.isUltra?'#bf9418':'#c23b22'), 15, 6); 
+        if(this.hp <= 0) {
+            if(!this.isUltra) { this.isCorpse = true; this.vx = 0; this.ultraAnimT = 0; this.state = 'dead'; spawnParticles(this.x+30, this.y+45, '#c23b22', 50, 10); document.getElementById('boss-ui').style.display='none'; showWarning("Evergreen 校长 倒下了...", 2000); } 
+            else { gameVictory = true; document.getElementById('boss-name').innerHTML="无 上 校 长 挂 科"; document.getElementById('boss-name').style.color="white"; spawnParticles(this.x+25, this.y+40, '#fff', 200, 15); spawnParticles(this.x+25, this.y+40, '#bf9418', 100, 20, 2.0); hitStopFrames=30; screenShake = 50; showWarning("<b style='color:#bf9418'>太 阳 沉 没</b><br>你 通 关 了 ！", 999999); }
+        }
+    },
+    
+    draw() {
+        if((this.hp<=0 && !this.isCorpse && !this.isUltra) || this.alpha<=0 || gameVictory) return;
+        ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, this.alpha)); ctx.translate(this.x, this.y);
+        if(this.isUltra) {
+            ctx.shadowColor = '#fff'; ctx.shadowBlur = 15; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(25, 0); ctx.lineTo(10, -15); ctx.lineTo(20, -10); ctx.lineTo(25, -25); ctx.lineTo(30, -10); ctx.lineTo(40, -15); ctx.lineTo(25, 0); ctx.fill();
+            ctx.beginPath(); ctx.arc(25, 12, 16, 0, Math.PI*2); ctx.fill(); ctx.shadowColor = '#f00'; ctx.shadowBlur = 20; ctx.fillStyle = '#f33'; ctx.beginPath(); ctx.ellipse(18, 12, 4, 8, -0.2, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(32, 12, 4, 8, 0.2, 0, Math.PI*2); ctx.fill();
+            ctx.shadowColor = '#bf9418'; ctx.shadowBlur = 15; let gradUltra = ctx.createLinearGradient(0, 25, 50, 80); gradUltra.addColorStop(0, '#bf9418'); gradUltra.addColorStop(0.5, '#000'); gradUltra.addColorStop(1, '#bf9418'); ctx.fillStyle = gradUltra; ctx.beginPath(); ctx.moveTo(5, 25); ctx.lineTo(45, 25); ctx.lineTo(25, 80); ctx.closePath(); ctx.fill();
+        } else if(this.isCorpse) { ctx.fillStyle = '#111'; ctx.fillRect(0, 70, 60, 20); ctx.fillStyle = '#444'; ctx.fillRect(10, 72, 40, 10);
+        } else { ctx.fillStyle = '#0a0a0a'; ctx.shadowColor = '#c23b22'; ctx.shadowBlur = 20; ctx.beginPath(); ctx.moveTo(30, 0); ctx.quadraticCurveTo(70, 40, 60, 90); ctx.quadraticCurveTo(30, 100+Math.sin(Date.now()/200)*10, 0, 90); ctx.quadraticCurveTo(-10, 40, 30, 0); ctx.fill(); ctx.shadowBlur = 0; ctx.fillStyle = '#ff1a1a'; ctx.fillRect(18, 25, 6, 4); ctx.fillRect(36, 25, 6, 4); if(this.state==='dive' && this.stateT>70) { ctx.strokeStyle='red'; ctx.lineWidth=2; let r=Math.max(0,(90-this.stateT)*2); ctx.beginPath(); ctx.arc(30,45,r,0,Math.PI*2); ctx.stroke(); } }
+        ctx.restore();
+    }
+};
+
+// ================= 主循环与控制 =================
+function initGame() {
+    player.hp = 25; player.soul = 0; player.x = 200; player.y = 500; player.vx = 0; player.vy = 0; player.isDash = false; player.dashC = 0; player.invincible = 0; player.isDive = false; player.isFocus = false; player.hekHong = false; player.attackDmg = 10;
+    player.updateUI(); document.getElementById('player-status').innerHTML = ''; document.getElementById('spell-ui').innerText = "[K] 白波"; document.getElementById('spell-ui').style.color = "#00e5ff"; document.getElementById('spell-ui').style.textShadow = "none"; document.getElementById('heal-ui').innerText = "[长按 F] 回血";
+
+    boss.hp = 400; boss.maxHp = 400; boss.active = false; boss.x = 1000; boss.y = 400; boss.state = 'idle'; boss.stateT = 0; boss.alpha = 1; boss.isCorpse = false; boss.isUltra = false; boss.p2 = false; boss.p3 = false; boss.ultraAnimT = 0;
+    document.getElementById('boss-ui').style.display = 'none'; document.getElementById('boss-name').innerHTML = "evergreen 校 长"; document.getElementById('boss-name').style.color = "#fff"; document.getElementById('boss-name').style.textShadow = "0 0 10px #f00"; document.getElementById('boss-hp').style.background = "#c23b22"; document.getElementById('boss-hp').style.width = '100%';
+    
+    enemies = []; props = []; projectiles = []; playerProjectiles = []; particles = []; shockwaves = []; homeworks = [];
+    hitStopFrames = 0; screenShake = 0; gameVictory = false; gameOver = false; map.magma = false;
+    document.getElementById('warning').style.display = 'none';
+}
+
+initGame(); // 首次初始化
+
+function gameLoop() {
+    requestAnimationFrame(gameLoop);
+
+    // 一键重开 R键
+    if((gameOver || gameVictory) && keys.r && !prevKeys.r) { initGame(); }
+
+    if(hitStopFrames > 0) { hitStopFrames--; for(let k in keys) prevKeys[k] = keys[k]; return; }
+
+    if(gameOver || gameVictory) {
+        ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.save();
+        let camX = canvas.width>=1500 ? (canvas.width-1500)/2 : Math.max(canvas.width-1500, Math.min(0, canvas.width/2-player.x)); let camY = canvas.height-730; 
+        ctx.translate(camX, camY);
+        ctx.fillStyle = '#11151c'; ctx.fillRect(-1000, map.floor, 4000, 1000); 
+        ctx.fillStyle = '#11151c'; map.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+        enemies.forEach(e => e.draw()); props.forEach(p => p.draw()); boss.draw(); player.draw();
+        ctx.restore();
+
+        if(gameOver) {
+            ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width, canvas.height); 
+            ctx.fillStyle='#fff'; ctx.font='bold 40px serif'; ctx.textAlign='center'; ctx.fillText("你 已 挂 课", canvas.width/2, canvas.height/2);
+            ctx.font='20px sans-serif'; ctx.fillStyle='#aaa'; ctx.fillText("按 [R] 键重新挑战", canvas.width/2, canvas.height/2 + 40);
+        } else if(gameVictory) {
+            ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(0,0,canvas.width, canvas.height); 
+            ctx.fillStyle='#00e5ff'; ctx.font='bold 40px serif'; ctx.textAlign='center'; ctx.fillText("完 美 通 关", canvas.width/2, canvas.height/2);
+            ctx.font='20px sans-serif'; ctx.fillStyle='#aaa'; ctx.fillText("按 [R] 键重新挑战", canvas.width/2, canvas.height/2 + 40);
+        }
+
+        for(let k in keys) prevKeys[k] = keys[k]; return; 
+    }
+
+    // ================= 核心更新逻辑 =================
+    player.update(); boss.update(); 
+    enemies.forEach((e,i) => { e.update(); if(e.hp<=0) enemies.splice(i,1); }); 
+    props.forEach((p,i) => { p.update(); if(p.hp<=0) props.splice(i,1); });
+    map.magma = props.some(p => p.type === 'ACOutdoor' && p.hp > 0);
+
+    for(let i=homeworks.length-1; i>=0; i--) {
+        let hw = homeworks[i];
+        if(hw.state === 'warning') {
+            hw.timer--; if(hw.timer <= 0) hw.state = 'falling';
+        } else if(hw.state === 'falling') {
+            hw.y += hw.vy;
+            if(hw.y + hw.h >= map.floor) { hw.y = map.floor - hw.h; hw.state = 'landed'; hw.timer = 40; screenShake = 20; spawnParticles(hw.x+hw.w/2, map.floor, '#fff', 15, 8); }
+            if(checkRectOverlap(hw, player) && !player.isDash) player.takeDamage(hw.x+hw.w/2, 2); 
+        } else if(hw.state === 'landed') {
+            hw.timer--; if(hw.timer <= 0) hw.state = 'fading';
+            if(checkRectOverlap(hw, player) && !player.isDash) player.takeDamage(hw.x+hw.w/2, 1);
+        } else if(hw.state === 'fading') { hw.alpha -= 0.05; if(hw.alpha <= 0) homeworks.splice(i, 1); }
+    }
+
+    projectiles.forEach((p,i) => { 
+        if(p.type==='homing') { p.vx+=(player.x+15-p.x)*0.003; p.vy+=(player.y+20-p.y)*0.003; } p.x+=p.vx; p.y+=p.vy; p.life--;
+        if(checkRectOverlap({x:p.x-5,y:p.y-5,w:10,h:10}, player)) { player.takeDamage(p.x, (boss.isUltra?2:1)); p.life=0; } if(p.life<=0) projectiles.splice(i,1);
+    });
+
+    playerProjectiles.forEach((p,i) => { 
+        p.x+=p.vx; p.life--; p.animFrame++; if(p.life%2===0) spawnParticles(p.facing===1?p.x:p.x+p.w, p.y+p.h/2+(Math.random()-0.5)*20, (p.isBlack?'#bf9418':'#00e5ff'), 2, 0);
+        let dmg = p.isBlack ? 45 : 25; 
+        if(boss.active&&boss.hp>0 && checkRectOverlap(p, boss.getHitbox())) { boss.takeDamage(dmg, p.x); spawnParticles(p.x+p.w/2, p.y+p.h/2, p.isBlack?'#bf9418':'#fff', 40, 10); p.life=0; hitStopFrames=8; screenShake=18; }
+        enemies.forEach(e=>{if(checkRectOverlap(p,e)){e.takeDamage(dmg, p.x);spawnParticles(e.x,e.y,p.isBlack?'#bf9418':'#fff',10,5);p.life=0;}});
+        props.forEach(pr=>{if(checkRectOverlap(p,pr)){pr.takeDamage(dmg);spawnParticles(pr.x,pr.y,p.isBlack?'#bf9418':'#fff',10,5);p.life=0;}});
+        if(p.life<=0) playerProjectiles.splice(i,1);
+    });
+
+    particles.forEach((p,i) => { p.x+=p.vx; p.y+=p.vy; p.life-=(0.02 * (p.lifeMult||1)); if(p.life<=0) particles.splice(i,1); });
+    for(let i=shockwaves.length-1; i>=0; i--) { let sw = shockwaves[i]; sw.life--; if(sw.life <= 0) shockwaves.splice(i, 1); }
+
+    // ================= 渲染层 =================
+    ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.save();
+    let camX = canvas.width>=1500 ? (canvas.width-1500)/2 : Math.max(canvas.width-1500, Math.min(0, canvas.width/2-player.x)); let camY = canvas.height-730; 
+    if(screenShake>0) { camX+=(Math.random()-0.5)*screenShake; camY+=(Math.random()-0.5)*screenShake; screenShake*=0.8; if(screenShake<1)screenShake=0; } ctx.translate(camX, camY);
+
+    ctx.fillStyle = '#11151c'; ctx.fillRect(-1000, map.floor, 4000, 1000); 
+    if(map.magma) { ctx.fillStyle='rgba(255, 69, 0, 0.6)'; ctx.fillRect(-1000, map.floor, 4000, 40); if(Math.random()>0.8) spawnParticles(Math.random()*1500, map.floor, '#ff4500', 1, -3); }
+    
+    homeworks.forEach(hw => {
+        if(hw.state === 'warning') { ctx.fillStyle = `rgba(255, 0, 0, ${0.2 + Math.sin(Date.now()/50)*0.1})`; ctx.fillRect(hw.x, map.floor - hw.h, hw.w, hw.h); } 
+        else { ctx.save(); ctx.globalAlpha = hw.alpha; ctx.fillStyle = '#f5f5f5'; ctx.fillRect(hw.x, hw.y, hw.w, hw.h); ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.strokeRect(hw.x, hw.y, hw.w, hw.h); ctx.fillStyle = '#ccc'; for(let i=30; i<hw.h-10; i+=10) ctx.fillRect(hw.x+10, hw.y+i, hw.w-20, 4); ctx.fillStyle = '#d32f2f'; ctx.font = 'bold 24px sans-serif'; ctx.fillText("卷", hw.x+hw.w/2-12, hw.y+30); ctx.restore(); }
+    });
+
+    ctx.fillStyle = '#11151c'; map.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+    ctx.fillStyle = '#aaa'; map.spikes.forEach(s => { for(let i=0; i<s.w; i+=10) { ctx.beginPath(); ctx.moveTo(s.x+i, s.y+s.h); ctx.lineTo(s.x+i+5, s.y); ctx.lineTo(s.x+i+10, s.y+s.h); ctx.fill(); } });
+
+    enemies.forEach(e => e.draw()); props.forEach(p => p.draw()); boss.draw(); player.draw();
+
+    projectiles.forEach(p => { ctx.fillStyle='#ff4da6'; ctx.shadowColor='#ff4da6'; ctx.shadowBlur=10; ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur=0; });
+    
+    shockwaves.forEach(sw => {
+        if(sw.type === 'heal_burst') { ctx.strokeStyle = sw.isBlack ? '#bf9418' : '#fff'; ctx.lineWidth = 4; let size = (1 - sw.life/sw.maxLife) * 150; ctx.beginPath(); ctx.moveTo(sw.x - size, sw.y); ctx.lineTo(sw.x + size, sw.y); ctx.moveTo(sw.x, sw.y - size); ctx.lineTo(sw.x, sw.y + size); ctx.stroke();
+        } else { let alpha = sw.life / sw.maxLife; let w = (1 - alpha) * 150; let grad = ctx.createLinearGradient(0, sw.y, 0, sw.y - 600); grad.addColorStop(0, sw.isBlack ? `rgba(191,148,24,${alpha})` : `rgba(255,255,255,${alpha})`); grad.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = grad; ctx.fillRect(sw.x - w, sw.y - 600, w*2, 600); ctx.fillRect(sw.x - w*1.5, sw.y - 300, w/2, 300); ctx.fillRect(sw.x + w, sw.y - 300, w/2, 300); }
+    });
+
+    playerProjectiles.forEach(p => { ctx.save(); ctx.translate(p.x + p.w/2, p.y + p.h/2); if(p.facing === -1) ctx.scale(-1, 1); ctx.shadowColor = p.isBlack ? '#bf9418' : '#00e5ff'; ctx.shadowBlur = 20; let pGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, p.w); if(p.isBlack) { pGrad.addColorStop(0, '#000'); pGrad.addColorStop(0.5, '#bf9418'); pGrad.addColorStop(1, 'rgba(0,0,0,0)'); } else { pGrad.addColorStop(0, '#fff'); pGrad.addColorStop(0.5, '#00e5ff'); pGrad.addColorStop(1, 'rgba(0,0,0,0)'); } ctx.fillStyle = pGrad; ctx.beginPath(); ctx.moveTo(p.w/2, 0); ctx.quadraticCurveTo(p.w/4, p.h/2, -p.w/2, p.h/4); ctx.lineTo(-p.w/1.2 + Math.sin(p.animFrame)*10, 0); ctx.lineTo(-p.w/2, -p.h/4); ctx.quadraticCurveTo(p.w/4, -p.h/2, p.w/2, 0); ctx.fill(); ctx.fillStyle = '#fff'; ctx.shadowBlur = 0; ctx.beginPath(); ctx.ellipse(p.w/4, -p.h/6, p.w/8, p.h/8, 0.2, 0, Math.PI*2); ctx.fill(); ctx.restore(); });
+    particles.forEach(p => { ctx.globalAlpha=Math.max(0, Math.min(1, p.life)); ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill(); });
+    ctx.globalAlpha = 1.0; ctx.restore();
+
+    for(let k in keys) prevKeys[k] = keys[k];
+}
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>

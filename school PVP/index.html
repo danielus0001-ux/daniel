@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>南山传说 PVP 联机版</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #020205; color: white; font-family: 'Times New Roman', serif; }
+        canvas { display: block; margin: 0 auto; box-shadow: inset 0 0 150px rgba(0,0,0,1); cursor: crosshair; }
+        
+        /* 联机 UI */
+        #lobby { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 10, 20, 0.9); padding: 30px; border: 2px solid #00e5ff; border-radius: 10px; z-index: 100; text-align: center; }
+        #lobby h2 { color: #00e5ff; text-shadow: 0 0 10px #00e5ff; }
+        input { padding: 10px; width: 200px; border: 1px solid #444; background: #000; color: #fff; margin-bottom: 15px; }
+        button { padding: 10px 20px; background: #00e5ff; border: none; color: #000; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #fff; box-shadow: 0 0 15px #00e5ff; }
+        #conn-status { font-size: 14px; color: #aaa; margin-top: 10px; }
+
+        #ui { position: absolute; top: 20px; left: 20px; text-shadow: 2px 2px 2px #000; z-index: 10; pointer-events: none; display: none;}
+        .bar-bg { width: 200px; height: 12px; background: #222; border: 2px solid #555; margin-top: 5px; margin-bottom: 5px; }
+        .hp-fill { height: 100%; background: #eee; transition: width 0.1s; }
+        .soul-fill { height: 100%; background: #00e5ff; transition: width 0.2s; box-shadow: 0 0 10px #00e5ff; }
+        
+        #warning { position: absolute; top: 30%; left: 50%; transform: translateX(-50%); font-size: 36px; color: #ff3333; font-weight: bold; text-shadow: 0 0 20px #f00; display: none; z-index: 10; pointer-events: none; text-align: center;}
+        b.dash { color: #fff; text-shadow: 0 0 8px #fff; border-bottom: 1px dotted #fff; }
+    </style>
+</head>
+<body>
+
+    <div id="lobby">
+        <h2>南山传说: 多人 PVP</h2>
+        <input type="text" id="roomId" placeholder="输入房间名 (如: nanshan123)">
+        <br>
+        <button onclick="initMultiplayer('host')">创建房间 (玩家1)</button>
+        <button onclick="initMultiplayer('join')">加入房间 (玩家2)</button>
+        <div id="conn-status">等待操作...</div>
+    </div>
+
+    <div id="ui">
+        <div>你 (Hubble): <span id="player-hp">25</span> / 25</div>
+        <div class="bar-bg"><div class="hp-fill" id="hp-bar" style="width: 100%;"></div></div>
+        <div>对手 HP: <span id="opp-hp-val">25</span> / 25</div>
+        <div class="bar-bg"><div class="hp-fill" id="opp-hp-bar" style="width: 100%; background: #c23b22;"></div></div>
+        <div class="instruction" style="font-size: 12px; color: #aaa;">
+            [A/D] 移动 | [W/空格] 跳跃 | [L] 黑冲 | [J] 肘击 | [K] 白波
+        </div>
+    </div>
+
+    <div id="warning"></div>
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; } window.addEventListener('resize', resize); resize();
+
+const keys = { w:false, a:false, s:false, d:false, j:false, k:false, l:false, space:false };
+const prevKeys = { ...keys };
+
+// ================= 联机系统 =================
+let peer, conn;
+let isHost = false;
+let gameStarted = false;
+
+function initMultiplayer(role) {
+    const id = document.getElementById('roomId').value;
+    if(!id) return alert("请输入房间名！");
+    
+    document.getElementById('conn-status').innerText = "正在连接 P2P 网络...";
+    // 为了方便加入，Host 的 ID 就是房间名，Joiner 随机生成
+    const peerId = role === 'host' ? 'ns-' + id : null;
+    peer = new Peer(peerId);
+
+    peer.on('open', (myId) => {
+        if(role === 'host') {
+            document.getElementById('conn-status').innerText = "房间已创建，等待对手加入...";
+            isHost = true;
+        } else {
+            document.getElementById('conn-status').innerText = "正在寻找房间...";
+            connectToHost('ns-' + id);
+        }
+    });
+
+    peer.on('connection', (c) => {
+        conn = c;
+        setupDataHandlers();
+    });
+
+    peer.on('error', err => {
+        alert("连接失败: " + err.type);
+        location.reload();
+    });
+}
+
+function connectToHost(hostId) {
+    conn = peer.connect(hostId);
+    setupDataHandlers();
+}
+
+function setupDataHandlers() {
+    conn.on('open', () => {
+        document.getElementById('lobby').style.display = 'none';
+        document.getElementById('ui').style.display = 'block';
+        gameStarted = true;
+        showWarning("对决开始！", 2000);
+    });
+
+    conn.on('data', (data) => {
+        // 接收对手状态
+        otherPlayer.x = data.x;
+        otherPlayer.y = data.y;
+        otherPlayer.hp = data.hp;
+        otherPlayer.facing = data.facing;
+        otherPlayer.isDash = data.isDash;
+        otherPlayer.attackT = data.attackT;
+        otherPlayer.attackD = data.attackD;
+        
+        // 如果对手发了波
+        if(data.spawnSpell) {
+            projectiles.push({
+                x: data.spellX, y: data.spellY, vx: data.spellVX, 
+                w: 90, h: 55, life: 100, facing: data.facing, isFromOpp: true
+            });
+        }
+    });
+}
+
+function syncData() {
+    if(conn && conn.open) {
+        conn.send({
+            x: player.x, y: player.y, hp: player.hp, 
+            facing: player.facing, isDash: player.isDash,
+            attackT: player.attackT, attackD: player.attackD,
+            spawnSpell: localSpawnSpell,
+            spellX: player.facing === 1 ? player.x + player.w : player.x - 90,
+            spellY: player.y - 25,
+            spellVX: player.facing * 18
+        });
+        localSpawnSpell = false; // 发送后重置
+    }
+}
+
+// ================= 游戏逻辑 =================
+let hitStopFrames = 0, screenShake = 0, particles = [], projectiles = [], shockwaves = [];
+let localSpawnSpell = false;
+const map = { floor: 650, walls: [{x: 50, y:-500, w: 20, h:1500}, {x: 1400, y:-500, w: 20, h:1500}] };
+
+function showWarning(text, duration = 3000) { 
+    const w = document.getElementById('warning'); 
+    w.innerHTML = text; w.style.display = 'block'; 
+    setTimeout(() => w.style.display = 'none', duration); 
+}
+
+window.addEventListener('keydown', e => { let k = e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k]=true; if(k===' ') keys.space=true; });
+window.addEventListener('keyup', e => { let k = e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k]=false; if(k===' ') keys.space=false; });
+
+function spawnParticles(x, y, color, count, speed) { for(let i=0; i<count; i++) particles.push({ x, y, vx: (Math.random()-0.5)*speed, vy: (Math.random()-0.5)*speed - 2, life: 1.0, color, size: Math.random()*3+2 }); }
+function checkRectOverlap(r1, r2) { return r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y < r2.y + r2.h && r1.y + r1.h > r2.y; }
+
+// 本地玩家
+const player = {
+    x: 200, y: 500, w: 30, h: 45, vx: 0, vy: 0, speed: 7, jumpPower: -14, gravity: 0.7, facing: 1, hp: 25, maxHp: 25, soul: 0,
+    isGrounded: false, canDJ: true, invincible: 0, isDash: false, dashD: 0, dashC: 0, attackT: 0, attackD: 'fw',
+
+    update() {
+        if(this.hp <= 0) return;
+        let jp = (keys.w || keys.space) && !(prevKeys.w || prevKeys.space);
+        let ap = keys.j && !prevKeys.j;
+        let sp = keys.k && !prevKeys.k;
+        let dp = keys.l && !prevKeys.l;
+
+        if(!this.isDash) {
+            if(keys.a) { this.vx = -this.speed; this.facing = -1; }
+            else if(keys.d) { this.vx = this.speed; this.facing = 1; }
+            else { this.vx = 0; }
+
+            if(jp && this.isGrounded) { this.vy = this.jumpPower; this.isGrounded = false; }
+            else if(jp && this.canDJ) { this.vy = this.jumpPower * 0.85; this.canDJ = false; }
+
+            if(sp && this.soul >= 33) {
+                this.soul -= 33; localSpawnSpell = true;
+                projectiles.push({ x: this.facing===1?this.x+this.w:this.x-90, y:this.y-25, vx: this.facing * 18, w: 90, h: 55, life: 100, facing: this.facing, isFromOpp: false });
+            }
+
+            if(ap && this.attackT <= 0) {
+                this.attackT = 16;
+                let ab = { x: this.facing === 1 ? this.x + this.w : this.x - 75, y: this.y - 15, w: 75, h: 75 };
+                if(checkRectOverlap(ab, otherPlayer)) {
+                    // 这里不直接扣对方血，而是本地表现，伤害由对方在自己端计算（或双端校验）
+                    // 简化版：攻击方发送命中信号
+                    spawnParticles(otherPlayer.x+15, otherPlayer.y+20, '#fff', 15, 8);
+                    this.soul = Math.min(99, this.soul + 11);
+                }
+            }
+        }
+
+        if(dp && this.dashC <= 0) { this.isDash = true; this.dashD = 14; this.dashC = 45; this.vy = 0; }
+        if(this.isDash) { this.vx = this.facing * 20; this.dashD--; if(this.dashD<=0) this.isDash=false; }
+        else { this.vy += this.gravity; }
+
+        this.x += this.vx; this.y += this.vy;
+        if(this.y + this.h >= map.floor) { this.y = map.floor - this.h; this.vy = 0; this.isGrounded = true; this.canDJ = true; }
+        
+        // 简易 PVP 判定：如果对手在攻击且碰到我
+        if(otherPlayer.attackT > 8 && this.invincible <= 0) {
+            let oppAb = { x: otherPlayer.facing === 1 ? otherPlayer.x + 30 : otherPlayer.x - 75, y: otherPlayer.y - 15, w: 75, h: 75 };
+            if(checkRectOverlap(this, oppAb)) { this.takeDamage(1); }
+        }
+
+        if(this.invincible > 0) this.invincible--; if(this.attackT > 0) this.attackT--; if(this.dashC > 0) this.dashC--;
+        
+        document.getElementById('player-hp').innerText = this.hp;
+        document.getElementById('hp-bar').style.width = (this.hp/this.maxHp*100) + '%';
+    },
+
+    takeDamage(dmg) {
+        this.hp -= dmg; this.invincible = 40; screenShake = 15;
+        spawnParticles(this.x+15, this.y+20, '#f00', 20, 10);
+        if(this.hp <= 0) { showWarning("你 挂 了", 9999); gameOver = true; }
+    },
+
+    draw(isMe) {
+        ctx.fillStyle = isMe ? '#fff' : '#c23b22';
+        ctx.beginPath(); ctx.arc(this.x+15, this.y+12, 14, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#222';
+        ctx.fillRect(this.x+5, this.y+20, 20, 25);
+        // 绘制攻击特效
+        if(this.attackT > 8) {
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.fillRect(this.facing === 1 ? this.x + 30 : this.x - 75, this.y - 15, 75, 75);
+        }
+    }
+};
+
+// 对手玩家状态（由网络同步）
+const otherPlayer = { x: 1000, y: 500, w: 30, h: 45, hp: 25, facing: -1, isDash: false, attackT: 0, attackD: 'fw' };
+
+function update() {
+    if(!gameStarted) return;
+    if(hitStopFrames > 0) { hitStopFrames--; return; }
+
+    player.update();
+    syncData(); // 核心：每帧发送数据
+
+    // 更新波
+    for(let i = projectiles.length - 1; i >= 0; i--) {
+        let p = projectiles[i];
+        p.x += p.vx; p.life--;
+        // 如果波碰到我（且是对手发的）
+        if(p.isFromOpp && checkRectOverlap(p, player) && player.invincible <= 0) {
+            player.takeDamage(2); projectiles.splice(i, 1);
+        } else if(p.life <= 0) projectiles.splice(i, 1);
+    }
+
+    particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.life -= 0.02; if(p.life <= 0) particles.splice(i, 1); });
+
+    // 同步对方 UI
+    document.getElementById('opp-hp-val').innerText = otherPlayer.hp;
+    document.getElementById('opp-hp-bar').style.width = (otherPlayer.hp/25*100) + '%';
+}
+
+function draw() {
+    ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.save();
+    if(screenShake > 0) { ctx.translate((Math.random()-0.5)*screenShake, (Math.random()-0.5)*screenShake); screenShake *= 0.9; }
+
+    // 地面
+    ctx.fillStyle = '#11151c'; ctx.fillRect(0, map.floor, canvas.width, canvas.height - map.floor);
+
+    if(gameStarted) {
+        player.draw(true);
+        // 绘制对方
+        ctx.fillStyle = '#c23b22';
+        ctx.beginPath(); ctx.arc(otherPlayer.x+15, otherPlayer.y+12, 14, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#222'; ctx.fillRect(otherPlayer.x+5, otherPlayer.y+20, 20, 25);
+        if(otherPlayer.attackT > 8) {
+            ctx.fillStyle = 'rgba(194, 59, 34, 0.3)';
+            ctx.fillRect(otherPlayer.facing === 1 ? otherPlayer.x + 30 : otherPlayer.x - 75, otherPlayer.y - 15, 75, 75);
+        }
+    }
+
+    projectiles.forEach(p => { ctx.fillStyle = p.isFromOpp ? '#f00' : '#00e5ff'; ctx.fillRect(p.x, p.y, p.w, p.h); });
+    particles.forEach(p => { ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); });
+    ctx.restore();
+}
+
+function loop() {
+    update();
+    draw();
+    for(let k in keys) prevKeys[k] = keys[k];
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
