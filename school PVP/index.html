@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Hollow Knight: PVP Legend</title>
+    <title>南山传说 PVP</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; background: #020205; color: white; font-family: 'Times New Roman', serif; }
         canvas { display: block; margin: 0 auto; box-shadow: inset 0 0 150px rgba(0,0,0,1); cursor: crosshair; }
         
-        /* 联机 UI 重构 */
+        /* 联机 UI */
         #lobby { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 10, 20, 0.95); padding: 30px; border: 2px solid #00e5ff; border-radius: 10px; z-index: 100; text-align: center; box-shadow: 0 0 30px rgba(0,229,255,0.2); }
         #lobby h2 { color: #00e5ff; text-shadow: 0 0 10px #00e5ff; margin-top: 0; letter-spacing: 2px;}
         .input-group { margin-bottom: 20px; }
@@ -70,7 +70,6 @@
     <canvas id="gameCanvas"></canvas>
 
 <script>
-// ================= URL 参数解析与 UI 初始化 =================
 const urlParams = new URLSearchParams(window.location.search);
 const roomParam = urlParams.get('room');
 if (roomParam) {
@@ -84,16 +83,16 @@ function resize() { canvas.width = window.innerWidth; canvas.height = window.inn
 const keys = { w:false, a:false, s:false, d:false, j:false, k:false, l:false, f:false, space:false };
 const prevKeys = { ...keys };
 
-// ================= 网络核心系统 (P2P) =================
+// ================= 网络核心系统 (P2P - 北美优化版) =================
 let peer, conn;
 let isHost = false;
 let gameStarted = false;
 
-function cleanRoomId(raw) { return raw.replace(/[^a-zA-Z0-9]/g, ''); } // 防止非法字符导致连接崩溃
+function cleanRoomId(raw) { return raw.replace(/[^a-zA-Z0-9]/g, ''); }
 
 function initMultiplayer(role) {
     let rawId = document.getElementById('roomId').value.trim();
-    if(!rawId) rawId = Math.random().toString(36).substring(2, 8); // 随机生成
+    if(!rawId) rawId = Math.random().toString(36).substring(2, 8); 
     const cleanId = cleanRoomId(rawId);
     document.getElementById('roomId').value = cleanId;
     
@@ -102,14 +101,22 @@ function initMultiplayer(role) {
     document.getElementById('btn-host').disabled = true;
     document.getElementById('btn-join').disabled = true;
 
-    // 前缀防止与其他人的应用撞车
     const globalId = 'nanshan-pvp-' + cleanId; 
     
-    // 断开之前的连接（如果存在）
     if(peer) peer.destroy();
 
-    // 初始化 Peer
-    peer = new Peer(role === 'host' ? globalId : null, { debug: 1 });
+    // 针对 Redmond/北美环境优化的 STUN 节点
+    peer = new Peer(role === 'host' ? globalId : null, { 
+        debug: 2, 
+        config: {
+            'iceServers': [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun.cloudflare.com:3478' },
+                { urls: 'stun:global.stun.twilio.com:3478' }
+            ]
+        }
+    });
 
     peer.on('open', (myId) => {
         if(role === 'host') {
@@ -117,7 +124,6 @@ function initMultiplayer(role) {
             statusEl.innerText = "房间建好了！等待对手...";
             statusEl.style.color = "#00e5ff";
             
-            // 显示邀请链接
             const inviteUrl = window.location.origin + window.location.pathname + '?room=' + cleanId;
             document.getElementById('inviteLink').value = inviteUrl;
             document.getElementById('invite-box').style.display = 'block';
@@ -170,7 +176,6 @@ function setupDataHandlers() {
         document.getElementById('lobby').style.display = 'none';
         document.getElementById('ui').style.display = 'block';
         gameStarted = true;
-        // 如果是房主，在左边出生；如果是加入者，在右边出生
         if(isHost) { player.x = 200; player.facing = 1; } 
         else { player.x = 1200; player.facing = -1; }
         
