@@ -9,15 +9,22 @@
         canvas { display: block; margin: 0 auto; box-shadow: inset 0 0 150px rgba(0,0,0,1); cursor: crosshair; }
         
         /* Lobby List UI */
-        #lobby { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 10, 20, 0.95); padding: 30px; border: 2px solid #00e5ff; border-radius: 10px; z-index: 100; text-align: center; box-shadow: 0 0 30px rgba(0,229,255,0.2); width: 450px; }
-        #lobby h2 { color: #00e5ff; text-shadow: 0 0 10px #00e5ff; margin-top: 0; letter-spacing: 2px;}
+        #lobby { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 10, 20, 0.95); padding: 30px; border: 2px solid #00e5ff; border-radius: 10px; z-index: 100; text-align: center; box-shadow: 0 0 30px rgba(0,229,255,0.2); width: 480px; }
+        .lobby-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00e5ff; padding-bottom: 10px; margin-bottom: 15px; }
+        .lobby-header h2 { color: #00e5ff; text-shadow: 0 0 10px #00e5ff; margin: 0; letter-spacing: 2px; font-size: 22px;}
+        #btn-refresh { padding: 6px 12px; background: #111; color: #00e5ff; border: 1px solid #00e5ff; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s;}
+        #btn-refresh:hover { background: #00e5ff; color: #000; box-shadow: 0 0 10px #00e5ff;}
         
-        .server-list { margin-top: 20px; text-align: left; background: #000; border: 1px solid #444; border-radius: 5px; padding: 10px; height: 320px; overflow-y: auto; }
+        .server-list { text-align: left; background: #000; border: 1px solid #444; border-radius: 5px; padding: 10px; height: 350px; overflow-y: auto; }
         .server-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px dashed #333; transition: background 0.2s;}
         .server-row:hover { background: rgba(0, 229, 255, 0.05); }
         .server-row:last-child { border-bottom: none; }
-        .server-name { font-size: 16px; font-weight: bold; color: #fff; }
-        .server-actions button { padding: 8px 15px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 12px; margin-left: 5px; border-radius: 3px; }
+        
+        .server-info { display: flex; flex-direction: column; }
+        .server-name { font-size: 15px; font-weight: bold; color: #fff; }
+        .server-status { font-size: 12px; color: #aaa; margin-top: 4px; font-weight: bold; }
+        
+        .server-actions button { padding: 6px 12px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 12px; margin-left: 5px; border-radius: 3px; }
         .btn-host { background: #00e5ff; color: #000; }
         .btn-host:hover { background: #fff; box-shadow: 0 0 10px #00e5ff; }
         .btn-join { background: #ff3333; color: #fff; }
@@ -46,22 +53,13 @@
 <body>
 
     <div id="lobby">
-        <h2>PVP Arena Server List</h2>
-        
-        <div class="server-list">
-            <div class="server-row"><div class="server-name">Arena 1: The Crossroads (Flat)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena1')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena1')">Join</button></div></div>
-            <div class="server-row"><div class="server-name">Arena 2: Greenpath (Platforms)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena2')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena2')">Join</button></div></div>
-            <div class="server-row"><div class="server-name">Arena 3: City of Tears (High)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena3')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena3')">Join</button></div></div>
-            <div class="server-row"><div class="server-name">Arena 4: Crystal Peak (Stairs)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena4')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena4')">Join</button></div></div>
-            <div class="server-row"><div class="server-name">Arena 5: The Abyss (Flat)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena5')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena5')">Join</button></div></div>
-            <div class="server-row"><div class="server-name">Arena 6: Deepnest (Platforms)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena6')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena6')">Join</button></div></div>
-            <div class="server-row"><div class="server-name">Arena 7: Kingdom's Edge (High)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena7')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena7')">Join</button></div></div>
-            <div class="server-row"><div class="server-name">Arena 8: Resting Grounds (Stairs)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena8')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena8')">Join</button></div></div>
-            <div class="server-row"><div class="server-name">Arena 9: Queen's Gardens (Flat)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena9')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena9')">Join</button></div></div>
-            <div class="server-row"><div class="server-name">Arena 10: White Palace (Platforms)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena10')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena10')">Join</button></div></div>
-            <div class="server-row"><div class="server-name">Arena 11: Fog Canyon (High)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena11')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena11')">Join</button></div></div>
-            <div class="server-row"><div class="server-name">Arena 12: Dirtmouth (Stairs)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena12')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena12')">Join</button></div></div>
+        <div class="lobby-header">
+            <h2>PVP Server List</h2>
+            <button id="btn-refresh" onclick="refreshAllRooms()">🔄 刷新状态</button>
         </div>
+        
+        <div class="server-list" id="arena-list">
+            </div>
 
         <div id="conn-status">Select an Arena to play.</div>
     </div>
@@ -86,18 +84,116 @@
     <canvas id="gameCanvas"></canvas>
 
 <script>
+// ================= Arena Setup & UI Generation =================
+const arenas = [
+    { id: 'arena1', name: "The Crossroads", type: "(Flat)" },
+    { id: 'arena2', name: "Greenpath", type: "(Platforms)" },
+    { id: 'arena3', name: "City of Tears", type: "(High)" },
+    { id: 'arena4', name: "Crystal Peak", type: "(Stairs)" },
+    { id: 'arena5', name: "The Abyss", type: "(Flat)" },
+    { id: 'arena6', name: "Deepnest", type: "(Platforms)" },
+    { id: 'arena7', name: "Kingdom's Edge", type: "(High)" },
+    { id: 'arena8', name: "Resting Grounds", type: "(Stairs)" },
+    { id: 'arena9', name: "Queen's Gardens", type: "(Flat)" },
+    { id: 'arena10', name: "White Palace", type: "(Platforms)" },
+    { id: 'arena11', name: "Fog Canyon", type: "(High)" },
+    { id: 'arena12', name: "Dirtmouth", type: "(Stairs)" }
+];
+
+const listContainer = document.getElementById('arena-list');
+arenas.forEach(arena => {
+    listContainer.innerHTML += `
+        <div class="server-row">
+            <div class="server-info">
+                <div class="server-name">Arena ${arena.id.replace('arena', '')}: ${arena.name} ${arena.type}</div>
+                <div class="server-status" id="status-${arena.id}">状态: 未知...</div>
+            </div>
+            <div class="server-actions">
+                <button class="btn-host" onclick="initMultiplayer('host', '${arena.id}')">Host</button>
+                <button class="btn-join" onclick="initMultiplayer('join', '${arena.id}')">Join</button>
+            </div>
+        </div>
+    `;
+});
+
 const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
 function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; } window.addEventListener('resize', resize); resize();
 
 const keys = { w:false, a:false, s:false, d:false, j:false, k:false, l:false, f:false, space:false };
 const prevKeys = { ...keys };
 
-// ================= WebRTC Networking =================
+// ================= P2P Polling Radar (黑科技：隐形雷达探测) =================
+let lobbyPeer = null;
+let probeCallbacks = {};
+
+function initLobbyRadar() {
+    lobbyPeer = new Peer(null, { 
+        config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun.cloudflare.com:3478' }] }
+    });
+
+    lobbyPeer.on('open', () => { refreshAllRooms(); });
+
+    lobbyPeer.on('error', (err) => {
+        if (err.type === 'peer-unavailable') {
+            for (let targetId in probeCallbacks) {
+                if (err.message.includes(targetId)) {
+                    probeCallbacks[targetId](0);
+                    delete probeCallbacks[targetId];
+                }
+            }
+        }
+    });
+}
+
+function checkRoom(arenaId) {
+    return new Promise((resolve) => {
+        let targetId = 'nanshan-pvp-v3-' + arenaId;
+        
+        let timeout = setTimeout(() => {
+            if (probeCallbacks[targetId]) { probeCallbacks[targetId](0); delete probeCallbacks[targetId]; }
+        }, 2000);
+
+        probeCallbacks[targetId] = (result) => { clearTimeout(timeout); resolve(result); };
+
+        let c = lobbyPeer.connect(targetId, { metadata: { type: 'probe' } });
+        if(c) {
+            c.on('open', () => {
+                c.on('data', (data) => {
+                    if(data.type === 'probe_reply') {
+                        if (probeCallbacks[targetId]) { probeCallbacks[targetId](data.players); delete probeCallbacks[targetId]; c.close(); }
+                    }
+                });
+            });
+        }
+    });
+}
+
+async function refreshAllRooms() {
+    if(!lobbyPeer || !lobbyPeer.open) return;
+    let btn = document.getElementById('btn-refresh');
+    btn.innerText = "刷新中..."; btn.disabled = true;
+
+    let promises = arenas.map(arena => {
+        let span = document.getElementById('status-' + arena.id);
+        span.innerText = "探测中 (Probing)..."; span.style.color = "#aaa";
+        return checkRoom(arena.id).then(count => {
+            if(count === 0) { span.innerText = "0 人 (Empty)"; span.style.color = "#888"; } 
+            else if(count === 1) { span.innerText = "1 人 (Waiting)"; span.style.color = "#00ff00"; } 
+            else if(count === 2) { span.innerText = "2 人 (Full)"; span.style.color = "#ff3333"; }
+        });
+    });
+
+    await Promise.all(promises);
+    btn.innerText = "🔄 刷新状态"; btn.disabled = false;
+}
+
+initLobbyRadar();
+
+// ================= WebRTC Game Networking =================
 let peer, conn;
 let isHost = false;
 let gameStarted = false;
 
-// Map System
 const map = { floor: 650, walls: [{x: 50, y:-500, w: 20, h:1500}, {x: 1400, y:-500, w: 20, h:1500}], platforms: [], themeColor: '#11151c', platColor: '#444' };
 
 function loadMap(arenaId) {
@@ -105,36 +201,30 @@ function loadMap(arenaId) {
     let type = idNum % 4; // 1: Flat, 2: Platforms, 3: High, 0: Stairs
     map.platforms = [];
     
-    if(type === 1) { // Flat
-        map.themeColor = '#11151c';
-    } else if (type === 2) { // Double Platforms
-        map.platforms = [{x: 250, y: 500, w: 250, h: 20}, {x: 950, y: 500, w: 250, h: 20}];
-        map.themeColor = '#0a1a11'; map.platColor = '#1e3b26';
-    } else if (type === 3) { // Central High
-        map.platforms = [{x: 600, y: 400, w: 250, h: 20}, {x: 200, y: 520, w: 200, h: 20}, {x: 1050, y: 520, w: 200, h: 20}];
-        map.themeColor = '#10152b'; map.platColor = '#2a3b66';
-    } else if (type === 0) { // Staggered
-        map.platforms = [{x: 300, y: 520, w: 200, h: 20}, {x: 650, y: 420, w: 200, h: 20}, {x: 1000, y: 520, w: 200, h: 20}];
-        map.themeColor = '#2b102b'; map.platColor = '#5e2a5e';
-    }
+    if(type === 1) { map.themeColor = '#11151c'; } 
+    else if (type === 2) { map.platforms = [{x: 250, y: 500, w: 250, h: 20}, {x: 950, y: 500, w: 250, h: 20}]; map.themeColor = '#0a1a11'; map.platColor = '#1e3b26'; } 
+    else if (type === 3) { map.platforms = [{x: 600, y: 400, w: 250, h: 20}, {x: 200, y: 520, w: 200, h: 20}, {x: 1050, y: 520, w: 200, h: 20}]; map.themeColor = '#10152b'; map.platColor = '#2a3b66'; } 
+    else if (type === 0) { map.platforms = [{x: 300, y: 520, w: 200, h: 20}, {x: 650, y: 420, w: 200, h: 20}, {x: 1000, y: 520, w: 200, h: 20}]; map.themeColor = '#2b102b'; map.platColor = '#5e2a5e'; }
 }
 
 function initMultiplayer(role, arenaId) {
     document.querySelectorAll('.server-actions button').forEach(btn => btn.disabled = true);
+    document.getElementById('btn-refresh').disabled = true;
     const statusEl = document.getElementById('conn-status');
     statusEl.innerText = "Connecting to global relay servers...";
 
-    loadMap(arenaId); // Load the specific arena map
+    // 释放雷达占用的资源
+    if (lobbyPeer) { lobbyPeer.destroy(); lobbyPeer = null; }
+
+    loadMap(arenaId); 
     const globalId = 'nanshan-pvp-v3-' + arenaId; 
-    
     if(peer) peer.destroy();
 
     peer = new Peer(role === 'host' ? globalId : null, { 
         debug: 2, 
         config: {
             'iceServers': [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun.cloudflare.com:3478' },
+                { urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun.cloudflare.com:3478' },
                 { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
                 { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
                 { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
@@ -154,6 +244,17 @@ function initMultiplayer(role, arenaId) {
     });
 
     peer.on('connection', (c) => {
+        // 雷达探测机制响应：如果是从大厅来的探测请求，悄悄回复当前人数并挂断
+        if (c.metadata && c.metadata.type === 'probe') {
+            c.on('open', () => {
+                let playerCount = (conn && conn.open) ? 2 : 1;
+                c.send({ type: 'probe_reply', players: playerCount });
+                setTimeout(() => c.close(), 200);
+            });
+            return;
+        }
+
+        // 真实玩家加入响应
         if(isHost && conn && conn.open) {
             c.send({ type: 'error', msg: 'Arena is full!' });
             setTimeout(() => c.close(), 500);
@@ -178,7 +279,6 @@ function setupDataHandlers() {
         document.getElementById('lobby').style.display = 'none';
         document.getElementById('ui').style.display = 'block';
         gameStarted = true;
-        // Drop them from the sky to land safely on any map layout
         if(isHost) { player.x = 200; player.y = 100; player.facing = 1; } 
         else { player.x = 1200; player.y = 100; player.facing = -1; }
         
@@ -191,7 +291,6 @@ function setupDataHandlers() {
         otherPlayer.facing = data.facing; otherPlayer.isDash = data.isDash;
         otherPlayer.attackT = data.attackT; otherPlayer.attackD = data.attackD;
         otherPlayer.isFocus = data.isFocus; otherPlayer.focusT = data.focusT;
-        // We now receive velocity to correctly draw the enemy body leaning
         otherPlayer.vx = data.vx;
         
         if(data.spawnSpell) projectiles.push({ x: data.spellX, y: data.spellY, vx: data.spellVX, w: 90, h: 55, life: 100, facing: data.facing, isFromOpp: true });
@@ -207,7 +306,7 @@ function syncData() {
         conn.send({
             x: player.x, y: player.y, hp: player.hp, facing: player.facing, 
             isDash: player.isDash, attackT: player.attackT, attackD: player.attackD,
-            isFocus: player.isFocus, focusT: player.focusT, vx: player.vx, // Send VX for body drawing!
+            isFocus: player.isFocus, focusT: player.focusT, vx: player.vx,
             spawnSpell: localSpawnSpell, spellX: player.facing === 1 ? player.x + player.w : player.x - 90, spellY: player.y - 25, spellVX: player.facing * 18
         });
         localSpawnSpell = false; 
@@ -269,11 +368,9 @@ const player = {
         if(this.x < map.walls[0].x + map.walls[0].w) this.x = map.walls[0].x + map.walls[0].w;
         if(this.x + this.w > map.walls[1].x) this.x = map.walls[1].x - this.w;
         
-        this.y += this.vy;
-        this.isGrounded = false;
+        this.y += this.vy; this.isGrounded = false;
 
-        // Platform One-Way Collision
-        if (this.vy >= 0 && !keys.s) { // If falling down and NOT holding 'S'
+        if (this.vy >= 0 && !keys.s) { 
             map.platforms.forEach(plat => {
                 let prevY = this.y - this.vy;
                 if (prevY + this.h <= plat.y + 1 && this.y + this.h >= plat.y) {
@@ -324,7 +421,6 @@ const player = {
         ctx.fillStyle = this.isDash ? '#000' : (isMe ? '#222' : '#cc2222');
         if(this.isDash) { ctx.shadowColor = '#555'; ctx.shadowBlur = 10; }
         
-        // BUG FIXED: We now safely fall back to 0 if this.vx is somehow undefined, preventing NaN body errors
         let safeVx = this.vx || 0;
         ctx.beginPath(); ctx.moveTo(this.x+5, this.y+20); ctx.lineTo(this.x+25, this.y+20); ctx.lineTo(this.x+25-safeVx*0.5, this.y+this.h); ctx.lineTo(this.x+5-safeVx*0.5, this.y+this.h); ctx.fill(); ctx.shadowBlur = 0;
 
@@ -354,19 +450,12 @@ function update() {
 
     for(let i = projectiles.length - 1; i >= 0; i--) {
         let p = projectiles[i]; p.x += p.vx; p.life--;
-        
         let hitMe = p.isFromOpp && checkRectOverlap(p, player) && player.invincible <= 0 && !player.isDash;
-        let hitOpp = !p.isFromOpp && checkRectOverlap(p, otherPlayer); // Visual hit for sender
+        let hitOpp = !p.isFromOpp && checkRectOverlap(p, otherPlayer);
 
-        if(hitMe) { 
-            player.takeDamage(2, p.x); projectiles.splice(i, 1);
-        } else if (hitOpp) {
-            // BUG FIXED: Visual explosion on the sender's screen so spells don't look like they pass through
-            spawnParticles(otherPlayer.x+15, otherPlayer.y+20, '#fff', 20, 10);
-            hitStopFrames = 3; screenShake = 8; projectiles.splice(i, 1);
-        } else if(p.life <= 0) {
-            projectiles.splice(i, 1);
-        }
+        if(hitMe) { player.takeDamage(2, p.x); projectiles.splice(i, 1); } 
+        else if (hitOpp) { spawnParticles(otherPlayer.x+15, otherPlayer.y+20, '#fff', 20, 10); hitStopFrames = 3; screenShake = 8; projectiles.splice(i, 1); } 
+        else if(p.life <= 0) { projectiles.splice(i, 1); }
     }
     particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.life -= 0.02; if(p.life <= 0) particles.splice(i, 1); });
 
@@ -379,13 +468,10 @@ function draw() {
     if(screenShake > 0) { camX+=(Math.random()-0.5)*screenShake; camY+=(Math.random()-0.5)*screenShake; screenShake *= 0.9; }
     ctx.translate(camX, camY); 
     
-    // Draw Dynamic Map Background
     ctx.fillStyle = map.themeColor; ctx.fillRect(-1000, map.floor, 4000, 1000); 
     ctx.fillStyle = map.themeColor; map.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
     
-    // Draw Dynamic Platforms
-    ctx.fillStyle = map.platColor;
-    map.platforms.forEach(p => { ctx.fillRect(p.x, p.y, p.w, p.h); });
+    ctx.fillStyle = map.platColor; map.platforms.forEach(p => { ctx.fillRect(p.x, p.y, p.w, p.h); });
 
     if(gameStarted) { if(otherPlayer.hp > 0) player.draw.call(otherPlayer, false); if(player.hp > 0) player.draw(true); }
 
