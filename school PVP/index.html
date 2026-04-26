@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Nanshan PVP: Pro Edition</title>
+    <title>Nanshan PVP & CO-OP Pro</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; background: #020205; color: white; font-family: 'Segoe UI', Tahoma, sans-serif; }
@@ -25,7 +25,7 @@
         .avatar-preview:hover { box-shadow: 0 0 10px #00e5ff; transform: scale(1.1); }
         
         /* Server List */
-        .server-list { background: #05050a; border: 1px solid #333; border-radius: 6px; height: 250px; overflow-y: auto; padding: 5px; }
+        .server-list { background: #05050a; border: 1px solid #333; border-radius: 6px; height: 280px; overflow-y: auto; padding: 5px; }
         .server-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #222; transition: background 0.2s; }
         .server-row:hover { background: rgba(0, 229, 255, 0.05); }
         .server-row:last-child { border-bottom: none; }
@@ -38,6 +38,8 @@
         .btn-host:hover { background: #fff; box-shadow: 0 0 10px #00e5ff; }
         .btn-join { background: #ff3333; color: #fff; }
         .btn-join:hover { background: #fff; color: #ff3333; box-shadow: 0 0 10px #ff3333; }
+        .btn-coop { background: #ff8c00; color: #000; }
+        .btn-coop:hover { background: #fff; box-shadow: 0 0 10px #ff8c00; }
         
         #conn-status { font-size: 13px; color: #aaa; margin-top: 15px; text-align: center; }
 
@@ -59,6 +61,11 @@
         .instruction { font-size: 14px; color: #aaa; margin-top: 15px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; border: 1px solid #333; line-height: 1.6; display: inline-block;}
         #warning { position: absolute; top: 30%; left: 50%; transform: translateX(-50%); font-size: 36px; color: #ff3333; font-weight: bold; text-shadow: 0 0 20px #f00; display: none; z-index: 10; pointer-events: none; text-align: center;}
         
+        /* Co-op HUD */
+        #coop-ui { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); text-align: center; display: none; z-index: 9; }
+        .wave-text { font-size: 28px; color: #ff8c00; font-weight: bold; text-shadow: 0 0 15px #ff8c00; letter-spacing: 2px; margin-bottom: -5px;}
+        .kills-text { font-size: 16px; color: #fff; text-shadow: 0 0 5px #000; font-weight: bold;}
+
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #111; border-radius: 4px; }
         ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
@@ -77,7 +84,7 @@
 
     <div id="lobby">
         <div class="header">
-            <h2>LAN Arena Pro</h2>
+            <h2>PVP & CO-OP Arena</h2>
             <div>
                 <button class="btn-small" style="border-color:#ffd700; color:#ffd700;" onclick="showLeaderboard()">🏆 排行榜</button>
                 <button class="btn-small" id="btn-refresh" onclick="refreshAllRooms()">🔄 刷新</button>
@@ -86,15 +93,12 @@
 
         <div class="top-bar">
             <input type="file" id="avatar-upload" accept="image/*" style="display:none;" onchange="handleAvatarUpload(event)">
-            
             <div class="stat-box" style="flex: 0.5;" title="点击更换头像 (照片格式)">
                 <img id="my-avatar-preview" class="avatar-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23222'/><text x='50' y='50' font-family='Arial' font-size='40' fill='%23fff' text-anchor='middle' dominant-baseline='central'>👤</text></svg>" onclick="document.getElementById('avatar-upload').click()">
             </div>
-
             <div class="stat-box" style="flex: 1.2;">
                 👤 <input type="text" id="username-input" value="Knight" maxlength="8" placeholder="名字">
             </div>
-            
             <div class="stat-box" style="flex: 1.5;">
                 🎭 
                 <select id="skin-choice">
@@ -104,7 +108,6 @@
                     <option value="infected">Infected</option>
                 </select>
             </div>
-            
             <div class="stat-box" style="flex: 0.8; justify-content:center;">
                 🏆 Win: <span id="win-count" style="color:#ffd700; font-weight:bold; font-size:16px; margin-left:5px;">0</span>
             </div>
@@ -112,6 +115,11 @@
         
         <div class="server-list" id="arena-list"></div>
         <div id="conn-status">Select an Arena to play.</div>
+    </div>
+
+    <div id="coop-ui">
+        <div class="wave-text">WAVE <span id="coop-wave">1</span></div>
+        <div class="kills-text">Infected Killed: <span id="coop-kills">0</span></div>
     </div>
 
     <div id="ui">
@@ -152,7 +160,7 @@
     <canvas id="gameCanvas"></canvas>
 
 <script>
-// ================= Local Storage (Profiles, Avatar & Leaderboard) =================
+// ================= Local Storage =================
 let savedName = localStorage.getItem('hk_pvp_name') || 'Knight';
 let savedSkin = localStorage.getItem('hk_pvp_skin') || 'original';
 let winCount = parseInt(localStorage.getItem('hk_pvp_wins') || '0');
@@ -167,51 +175,36 @@ document.getElementById('my-avatar-preview').src = savedAvatar;
 document.getElementById('username-input').addEventListener('input', (e) => localStorage.setItem('hk_pvp_name', e.target.value));
 document.getElementById('skin-choice').addEventListener('change', (e) => localStorage.setItem('hk_pvp_skin', e.target.value));
 
-// Handle Avatar Image Upload & Base64 Compression (Max 64x64)
 function handleAvatarUpload(event) {
     const file = event.target.files[0];
     if (!file || !file.type.startsWith('image/')) { alert("请上传照片/图片格式！"); return; }
-    
     const reader = new FileReader();
     reader.onload = function(e) {
         const img = new Image();
         img.onload = function() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 64; canvas.height = 64;
+            const canvas = document.createElement('canvas'); canvas.width = 64; canvas.height = 64;
             const ctx = canvas.getContext('2d');
-            // Crop center
-            let size = Math.min(img.width, img.height);
-            let sx = (img.width - size) / 2; let sy = (img.height - size) / 2;
+            let size = Math.min(img.width, img.height); let sx = (img.width - size) / 2; let sy = (img.height - size) / 2;
             ctx.drawImage(img, sx, sy, size, size, 0, 0, 64, 64);
-            const base64 = canvas.toDataURL('image/jpeg', 0.8); // Compress
-            
+            const base64 = canvas.toDataURL('image/jpeg', 0.8); 
             localStorage.setItem('hk_pvp_avatar', base64);
-            document.getElementById('my-avatar-preview').src = base64;
-            savedAvatar = base64;
+            document.getElementById('my-avatar-preview').src = base64; savedAvatar = base64;
         }
         img.src = e.target.result;
     }
     reader.readAsDataURL(file);
 }
 
-// Show Leaderboard (Hall of Fame)
 function showLeaderboard() {
-    const content = document.getElementById('lb-content');
-    content.innerHTML = '';
-    if (matchHistory.length === 0) {
-        content.innerHTML = '<p style="color:#aaa; text-align:center;">还没有击败过对手，快去战斗吧！</p>';
-    } else {
-        // Reverse array to show newest first
+    const content = document.getElementById('lb-content'); content.innerHTML = '';
+    if (matchHistory.length === 0) { content.innerHTML = '<p style="color:#aaa; text-align:center;">还没有击败过对手，快去战斗吧！</p>'; } 
+    else {
         [...matchHistory].reverse().forEach(record => {
             content.innerHTML += `
                 <div class="lb-row">
                     <img src="${record.avatar}" class="lb-avatar">
-                    <div>
-                        <div style="color:#fff; font-weight:bold;">Defeated: <span style="color:#ff3333">${record.name}</span></div>
-                        <div style="font-size:11px; color:#aaa;">Date: ${record.date} | Skin: ${record.skin}</div>
-                    </div>
-                </div>
-            `;
+                    <div><div style="color:#fff; font-weight:bold;">Defeated: <span style="color:#ff3333">${record.name}</span></div><div style="font-size:11px; color:#aaa;">Date: ${record.date} | Skin: ${record.skin}</div></div>
+                </div>`;
         });
     }
     document.getElementById('leaderboard-modal').style.display = 'block';
@@ -229,21 +222,26 @@ function getSkinColors(skinStr, isDash) {
 
 // ================= Arena & Network Init =================
 const arenas = [
-    { id: 'arena1', name: "The Crossroads", type: "(Flat)" }, { id: 'arena2', name: "Greenpath", type: "(Platforms)" },
-    { id: 'arena3', name: "City of Tears", type: "(High)" },  { id: 'arena4', name: "Crystal Peak", type: "(Stairs)" },
-    { id: 'arena5', name: "The Abyss", type: "(Flat)" },      { id: 'arena6', name: "Deepnest", type: "(Platforms)" }
+    { id: 'arena1', name: "The Crossroads", type: "(PVP Flat)" }, 
+    { id: 'arena2', name: "Greenpath", type: "(PVP Platforms)" },
+    { id: 'arena3', name: "City of Tears", type: "(PVP High)" },
+    { id: 'coop1', name: "Infected Crossroads", type: "(CO-OP Survival)", isCoop: true },
+    { id: 'coop2', name: "Deepnest Swarm", type: "(CO-OP Survival)", isCoop: true }
 ];
 
 const listContainer = document.getElementById('arena-list');
 arenas.forEach(arena => {
+    let btnClass = arena.isCoop ? 'btn-coop' : 'btn-host';
+    let btnLabel = arena.isCoop ? 'Host Co-op' : 'Host PVP';
+    let colorName = arena.isCoop ? '#ff8c00' : '#fff';
     listContainer.innerHTML += `
         <div class="server-row">
             <div class="server-info">
-                <div class="server-name">${arena.name} <span style="font-size:11px; color:#666;">${arena.type}</span></div>
+                <div class="server-name" style="color:${colorName}">${arena.name} <span style="font-size:11px; color:#666;">${arena.type}</span></div>
                 <div class="server-status" id="status-${arena.id}">Status: Probing...</div>
             </div>
             <div class="server-actions">
-                <button class="btn-host" onclick="initMultiplayer('host', '${arena.id}')">Host</button>
+                <button class="${btnClass}" onclick="initMultiplayer('host', '${arena.id}')">${btnLabel}</button>
                 <button class="btn-join" onclick="initMultiplayer('join', '${arena.id}')">Join</button>
             </div>
         </div>
@@ -260,13 +258,11 @@ let lobbyPeer = null; let probeCallbacks = {};
 function initLobbyRadar() {
     lobbyPeer = new Peer(null, { config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }] } });
     lobbyPeer.on('open', () => refreshAllRooms());
-    lobbyPeer.on('error', (err) => {
-        if (err.type === 'peer-unavailable') { for (let targetId in probeCallbacks) { if (err.message.includes(targetId)) { probeCallbacks[targetId](0); delete probeCallbacks[targetId]; } } }
-    });
+    lobbyPeer.on('error', (err) => { if (err.type === 'peer-unavailable') { for (let targetId in probeCallbacks) { if (err.message.includes(targetId)) { probeCallbacks[targetId](0); delete probeCallbacks[targetId]; } } } });
 }
 function checkRoom(arenaId) {
     return new Promise((resolve) => {
-        let targetId = 'nspvp-pro-v6-' + arenaId;
+        let targetId = 'nspvp-zombie-v1-' + arenaId;
         let timeout = setTimeout(() => { if (probeCallbacks[targetId]) { probeCallbacks[targetId](0); delete probeCallbacks[targetId]; } }, 1500);
         probeCallbacks[targetId] = (result) => { clearTimeout(timeout); resolve(result); };
         let c = lobbyPeer.connect(targetId, { metadata: { type: 'probe' } });
@@ -290,14 +286,18 @@ initLobbyRadar();
 
 // ================= Game Network & Mechanics =================
 let peer, conn, isHost = false, gameStarted = false;
+let isCoop = false;
+let zombies = [];
+let coopState = { wave: 1, kills: 0, spawnTimer: 60 };
+
 const map = { floor: 650, walls: [{x: 50, y:-500, w: 20, h:1500}, {x: 1400, y:-500, w: 20, h:1500}], platforms: [], themeColor: '#11151c', platColor: '#444' };
 
 function loadMap(arenaId) {
-    let idNum = parseInt(arenaId.replace('arena', '')); let type = idNum % 4; map.platforms = [];
-    if(type === 1) { map.themeColor = '#11151c'; } 
-    else if (type === 2) { map.platforms = [{x: 250, y: 500, w: 250, h: 20}, {x: 950, y: 500, w: 250, h: 20}]; map.themeColor = '#0a1a11'; map.platColor = '#1e3b26'; } 
-    else if (type === 3) { map.platforms = [{x: 600, y: 400, w: 250, h: 20}, {x: 200, y: 520, w: 200, h: 20}, {x: 1050, y: 520, w: 200, h: 20}]; map.themeColor = '#10152b'; map.platColor = '#2a3b66'; } 
-    else if (type === 0) { map.platforms = [{x: 300, y: 520, w: 200, h: 20}, {x: 650, y: 420, w: 200, h: 20}, {x: 1000, y: 520, w: 200, h: 20}]; map.themeColor = '#2b102b'; map.platColor = '#5e2a5e'; }
+    map.platforms = [];
+    if(arenaId === 'arena1') { map.themeColor = '#11151c'; } 
+    else if (arenaId === 'arena2' || arenaId === 'coop2') { map.platforms = [{x: 250, y: 500, w: 250, h: 20}, {x: 950, y: 500, w: 250, h: 20}]; map.themeColor = '#0a1a11'; map.platColor = '#1e3b26'; } 
+    else if (arenaId === 'arena3') { map.platforms = [{x: 600, y: 400, w: 250, h: 20}, {x: 200, y: 520, w: 200, h: 20}, {x: 1050, y: 520, w: 200, h: 20}]; map.themeColor = '#10152b'; map.platColor = '#2a3b66'; } 
+    else if (arenaId === 'coop1') { map.themeColor = '#1f1308'; map.platColor = '#3a2410'; } // Infected Theme
 }
 
 function initMultiplayer(role, arenaId) {
@@ -305,19 +305,20 @@ function initMultiplayer(role, arenaId) {
     document.getElementById('btn-refresh').disabled = true;
     document.getElementById('conn-status').innerText = "Connecting to relay servers...";
 
+    isCoop = arenaId.startsWith('coop');
     player.name = document.getElementById('username-input').value || 'Knight';
     player.skin = document.getElementById('skin-choice').value;
     player.avatar = savedAvatar;
 
     if (lobbyPeer) { lobbyPeer.destroy(); lobbyPeer = null; }
-    loadMap(arenaId); const globalId = 'nspvp-pro-v6-' + arenaId; if(peer) peer.destroy();
+    loadMap(arenaId); const globalId = 'nspvp-zombie-v1-' + arenaId; if(peer) peer.destroy();
 
     peer = new Peer(role === 'host' ? globalId : null, { 
         config: { 'iceServers': [ { urls: 'stun:stun.l.google.com:19302' }, { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' } ] }
     });
 
     peer.on('open', () => {
-        if(role === 'host') { isHost = true; document.getElementById('conn-status').innerText = `Hosting! Waiting for opponent...`; } 
+        if(role === 'host') { isHost = true; document.getElementById('conn-status').innerText = `Hosting! Waiting for ally/opponent...`; } 
         else { connectToHost(globalId); }
     });
 
@@ -336,49 +337,70 @@ function setupDataHandlers() {
         document.getElementById('lobby').style.display = 'none';
         document.getElementById('ui').style.display = 'block';
         gameStarted = true;
+        
+        if (isCoop) {
+            document.getElementById('coop-ui').style.display = 'block';
+            document.getElementById('ui-opp-avatar').style.borderColor = '#00e5ff';
+            document.getElementById('opp-name-label').style.color = '#00e5ff';
+            document.getElementById('opp-hp-bar').style.background = '#00e5ff';
+        }
+
         if(isHost) { player.x = 200; player.y = 100; player.facing = 1; } else { player.x = 1200; player.y = 100; player.facing = -1; }
         
-        // Handshake: Send My Profile (Avatar, Name, Skin) immediately once
         conn.send({ type: 'profile_sync', name: player.name, skin: player.skin, avatar: player.avatar });
-        
         document.getElementById('my-name-label').innerText = player.name;
         document.getElementById('ui-my-avatar').src = player.avatar;
         
-        showWarning("<b style='color:#00e5ff'>FIGHT!</b>", 3000);
+        showWarning(isCoop ? "<b style='color:#ff8c00'>SURVIVE THE SWARM</b>" : "<b style='color:#00e5ff'>FIGHT!</b>", 3000);
     });
 
     conn.on('data', (data) => {
         if(data.type === 'error') { alert(data.msg); location.reload(); return; }
         
-        // Receive Opponent Profile Data
         if(data.type === 'profile_sync') {
-            otherPlayer.name = data.name; 
-            otherPlayer.skin = data.skin;
+            otherPlayer.name = data.name; otherPlayer.skin = data.skin;
             otherPlayer.avatar = data.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23555'/><text x='50' y='50' font-family='Arial' font-size='40' fill='%23fff' text-anchor='middle' dominant-baseline='central'>?</text></svg>";
-            document.getElementById('opp-name-label').innerText = otherPlayer.name;
+            document.getElementById('opp-name-label').innerText = otherPlayer.name + (isCoop ? " (Ally)" : "");
             document.getElementById('ui-opp-avatar').src = otherPlayer.avatar;
-            return; // Don't process physics on this packet
+            return; 
         }
 
-        // Physics Sync
+        if (data.type === 'zombie_hit' && isHost) {
+            let z = zombies.find(z => z.id === data.id);
+            if (z) { z.hp -= data.dmg; z.vx = z.x > data.sourceX ? 15 : -15; }
+            return;
+        }
+
         otherPlayer.x = data.x; otherPlayer.y = data.y; otherPlayer.hp = data.hp;
         otherPlayer.facing = data.facing; otherPlayer.isDash = data.isDash;
         otherPlayer.attackT = data.attackT; otherPlayer.attackD = data.attackD;
         otherPlayer.isFocus = data.isFocus; otherPlayer.vx = data.vx;
         if(data.spawnSpell) projectiles.push({ x: data.spellX, y: data.spellY, vx: data.spellVX, w: 90, h: 55, life: 100, facing: data.facing, isFromOpp: true, skin: otherPlayer.skin });
+        
+        if (isCoop && !isHost && data.zombies) {
+            zombies = data.zombies;
+            coopState = data.coopState;
+            document.getElementById('coop-wave').innerText = coopState.wave;
+            document.getElementById('coop-kills').innerText = coopState.kills;
+        }
     });
 
-    conn.on('close', () => { if (!gameOver) { alert("Opponent disconnected."); location.reload(); } });
+    conn.on('close', () => { if (!gameOver) { alert(isCoop ? "Your ally left you to die..." : "Opponent disconnected."); location.reload(); } });
 }
 
 function syncData() {
     if(conn && conn.open) {
-        conn.send({
+        let packet = {
             x: player.x, y: player.y, hp: player.hp, facing: player.facing, 
             isDash: player.isDash, attackT: player.attackT, attackD: player.attackD,
             isFocus: player.isFocus, vx: player.vx,
             spawnSpell: localSpawnSpell, spellX: player.facing === 1 ? player.x + player.w : player.x - 90, spellY: player.y - 25, spellVX: player.facing * 18
-        });
+        };
+        if (isCoop && isHost) {
+            packet.zombies = zombies;
+            packet.coopState = coopState;
+        }
+        conn.send(packet);
         localSpawnSpell = false; 
     }
 }
@@ -399,7 +421,9 @@ const player = {
     isGrounded: false, canDJ: true, invincible: 0, isDash: false, dashD: 0, dashC: 0, attackT: 0, attackD: 'fw', isFocus: false, focusT: 0,
 
     update() {
+        if(this.hp <= 0 && isCoop) { this.vx = 0; this.vy += this.gravity; this.y += this.vy; if(this.y + this.h >= map.floor) { this.y = map.floor - this.h; this.vy = 0; } return; } // Ghosted
         if(this.hp <= 0 || gameOver) return;
+        
         let jp = (keys.w || keys.space) && !(prevKeys.w || prevKeys.space); let ap = keys.j && !prevKeys.j; let sp = keys.k && !prevKeys.k; let dp = keys.l && !prevKeys.l;
 
         if(keys.f && this.isGrounded && this.hp < this.maxHp && this.soul >= 33 && !this.isDash) {
@@ -411,10 +435,29 @@ const player = {
             if(keys.a) { this.vx = -this.speed; this.facing = -1; } else if(keys.d) { this.vx = this.speed; this.facing = 1; } else { this.vx = 0; }
             if(jp && this.isGrounded) { this.vy = this.jumpPower; this.isGrounded = false; } else if(jp && this.canDJ) { this.vy = this.jumpPower * 0.85; this.canDJ = false; }
             if(sp && this.soul >= 33) { this.soul -= 33; localSpawnSpell = true; this.vx = this.facing * -5; projectiles.push({ x: this.facing===1?this.x+this.w:this.x-90, y:this.y-25, vx: this.facing * 18, w: 90, h: 55, life: 100, facing: this.facing, isFromOpp: false, skin: this.skin }); }
+            
             if(ap && this.attackT <= 0) {
                 this.attackT = 16; this.attackD = keys.w ? 'up' : (keys.s && !this.isGrounded ? 'down' : 'fw');
                 let ab = { w: 85, h: 80 }; if(this.attackD === 'up'){ ab.x=this.x-27; ab.y=this.y-70; } else if(this.attackD === 'down'){ ab.x=this.x-27; ab.y=this.y+this.h-10; } else { ab.x = this.facing === 1 ? this.x + this.w : this.x - ab.w; ab.y = this.y - 20; }
-                if(checkRectOverlap(ab, otherPlayer)) { spawnParticles(otherPlayer.x+15, otherPlayer.y+20, '#fff', 15, 8); this.soul = Math.min(99, this.soul + 11); hitStopFrames = 4; screenShake = 10; if(this.attackD === 'down') { this.vy = -13; this.canDJ = true; } else if(this.attackD === 'up') { this.vy += 2; } else { this.vx = this.facing * -6; } }
+                
+                // PVP Damage
+                if(!isCoop && checkRectOverlap(ab, otherPlayer)) { 
+                    spawnParticles(otherPlayer.x+15, otherPlayer.y+20, '#fff', 15, 8); this.soul = Math.min(99, this.soul + 11); hitStopFrames = 4; screenShake = 10; 
+                    if(this.attackD === 'down') { this.vy = -13; this.canDJ = true; } else if(this.attackD === 'up') { this.vy += 2; } else { this.vx = this.facing * -6; } 
+                }
+                
+                // Co-op Zombie Damage
+                if(isCoop) {
+                    zombies.forEach(z => {
+                        if(checkRectOverlap(ab, z)) {
+                            spawnParticles(z.x+20, z.y+30, '#ff8c00', 15, 8); this.soul = Math.min(99, this.soul + 11); hitStopFrames = 4; screenShake = 8;
+                            if(this.attackD === 'down') { this.vy = -13; this.canDJ = true; } else if(this.attackD === 'up') { this.vy += 2; } else { this.vx = this.facing * -6; }
+                            
+                            if (isHost) { z.hp -= 15; z.vx = this.facing * 10; }
+                            else { conn.send({ type: 'zombie_hit', id: z.id, dmg: 15, sourceX: this.x }); }
+                        }
+                    });
+                }
             }
         }
 
@@ -427,10 +470,19 @@ const player = {
         if (this.vy >= 0 && !keys.s) { map.platforms.forEach(plat => { let prevY = this.y - this.vy; if (prevY + this.h <= plat.y + 1 && this.y + this.h >= plat.y) { if (this.x + this.w > plat.x && this.x < plat.x + plat.w) { this.y = plat.y - this.h; this.vy = 0; this.isGrounded = true; this.canDJ = true; } } }); }
         if(this.y + this.h >= map.floor) { this.y = map.floor - this.h; this.vy = 0; this.isGrounded = true; this.canDJ = true; }
         
-        if(otherPlayer.attackT > 8 && this.invincible <= 0) {
+        // Take Damage (PVP)
+        if(!isCoop && otherPlayer.attackT > 8 && this.invincible <= 0) {
             let oppAb = { w: 85, h: 80 }; if(otherPlayer.attackD === 'up'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y-70; } else if(otherPlayer.attackD === 'down'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y+otherPlayer.h-10; } else { oppAb.x = otherPlayer.facing === 1 ? otherPlayer.x + 30 : otherPlayer.x - 85; oppAb.y = otherPlayer.y - 20; }
             if(checkRectOverlap(this, oppAb)) { this.takeDamage(1, otherPlayer.x); }
         }
+
+        // Take Damage (Co-op Zombies)
+        if(isCoop && this.invincible <= 0) {
+            zombies.forEach(z => {
+                if (checkRectOverlap(this, z)) { this.takeDamage(1, z.x); }
+            });
+        }
+
         if(this.invincible > 0) this.invincible--; if(this.attackT > 0) this.attackT--; if(this.dashC > 0) this.dashC--;
         
         document.getElementById('player-hp').innerText = this.hp; document.getElementById('hp-bar').style.width = (this.hp/this.maxHp*100) + '%';
@@ -442,24 +494,43 @@ const player = {
         this.hp -= dmg; this.invincible = 40; screenShake = 15; this.isFocus = false;
         if(sourceX !== undefined) this.vx = this.x > sourceX ? 12 : -12; this.vy = -8;
         spawnParticles(this.x+15, this.y+20, '#ff3333', 20, 10);
-        if(this.hp <= 0 && !gameOver) { showWarning("<b style='color:#ff3333'>YOU DIED</b><br><span style='font-size:20px; color:#aaa'>Returning to lobby...</span>", 3000); gameOver = true; setTimeout(() => location.reload(), 3000); }
+        
+        if(this.hp <= 0 && !gameOver) {
+            if (!isCoop) {
+                showWarning("<b style='color:#ff3333'>YOU DIED</b><br><span style='font-size:20px; color:#aaa'>Returning to lobby...</span>", 3000); 
+                gameOver = true; setTimeout(() => location.reload(), 3000);
+            } else {
+                // In Co-op, check if both are dead
+                if (otherPlayer.hp <= 0) {
+                    showWarning("<b style='color:#ff3333'>THE SWARM CONSUMED YOU</b><br><span style='font-size:20px; color:#fff'>Total Kills: " + coopState.kills + "</span>", 5000);
+                    gameOver = true; setTimeout(() => location.reload(), 5000);
+                } else {
+                    spawnParticles(this.x+15, this.y+20, '#fff', 50, 10); // Ghost form effect
+                }
+            }
+        }
     },
 
     draw(isMe) {
-        if(this.invincible > 0 && Math.floor(Date.now()/100)%2===0 && !this.isDash) return;
+        if (this.hp <= 0 && isCoop) {
+            ctx.globalAlpha = 0.3; // Ghost mode
+        } else if (this.invincible > 0 && Math.floor(Date.now()/100)%2===0 && !this.isDash) {
+            return;
+        }
+
         let colors = getSkinColors(this.skin, this.isDash);
 
-        if(this.isFocus && this.focusT > 0) {
+        if(this.isFocus && this.focusT > 0 && this.hp > 0) {
             let p = this.focusT / 60; let r = 80 - p * 60; ctx.save(); ctx.translate(this.x+15, this.y+22); ctx.rotate(p * Math.PI * 4);
-            ctx.strokeStyle = `rgba(255,255,255,${1-p})`; ctx.lineWidth = 2; for(let i=0; i<4; i++) { ctx.beginPath(); ctx.arc(0, 0, r, i*Math.PI/2, i*Math.PI/2 + Math.PI/4); ctx.stroke(); } ctx.restore();
-            ctx.fillStyle = `rgba(255,255,255,${p*0.8})`; ctx.beginPath(); ctx.arc(this.x+15, this.y+22, 25, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = isMe ? `rgba(255,255,255,${1-p})` : `rgba(255,51,51,${1-p})`; ctx.lineWidth = 2; for(let i=0; i<4; i++) { ctx.beginPath(); ctx.arc(0, 0, r, i*Math.PI/2, i*Math.PI/2 + Math.PI/4); ctx.stroke(); } ctx.restore();
+            ctx.fillStyle = isMe ? `rgba(255,255,255,${p*0.8})` : `rgba(255,51,51,${p*0.8})`; ctx.beginPath(); ctx.arc(this.x+15, this.y+22, 25, 0, Math.PI*2); ctx.fill();
         }
 
         ctx.fillStyle = colors.body; ctx.beginPath(); ctx.arc(this.x+15, this.y+12, 14, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = colors.cloak;
         let safeVx = this.vx || 0; ctx.beginPath(); ctx.moveTo(this.x+5, this.y+20); ctx.lineTo(this.x+25, this.y+20); ctx.lineTo(this.x+25-safeVx*0.5, this.y+this.h); ctx.lineTo(this.x+5-safeVx*0.5, this.y+this.h); ctx.fill();
 
-        if(this.attackT > 8) {
+        if(this.attackT > 8 && this.hp > 0) {
             ctx.save(); ctx.translate(this.x+15, this.y+22); if(this.facing === -1 && this.attackD === 'fw') ctx.scale(-1, 1);
             ctx.shadowColor = colors.spell; ctx.shadowBlur = 15; ctx.fillStyle = colors.spell;
             ctx.beginPath();
@@ -468,6 +539,7 @@ const player = {
             else { ctx.arc(0, 0, 55, -Math.PI/2, Math.PI/2); ctx.arc(10, 0, 40, Math.PI/2, -Math.PI/2, true); }
             ctx.fill(); ctx.restore();
         }
+        ctx.globalAlpha = 1.0;
     }
 };
 
@@ -476,29 +548,96 @@ const otherPlayer = { x: 1000, y: 500, w: 30, h: 45, hp: 25, facing: -1, isDash:
 function update() {
     if(!gameStarted) return;
     if(hitStopFrames > 0) { hitStopFrames--; return; }
+    
+    // Host AI Update for Zombies
+    if (isHost && isCoop && !gameOver) {
+        coopState.spawnTimer--;
+        let maxZombies = 5 + coopState.wave * 2;
+        if (coopState.spawnTimer <= 0 && zombies.length < maxZombies) {
+            zombies.push({
+                id: Math.random().toString(), x: Math.random() > 0.5 ? 80 : 1320, y: 100, w: 35, h: 50,
+                hp: 20 + coopState.wave * 10, maxHp: 20 + coopState.wave * 10,
+                vx: 0, vy: 0, facing: 1, isGrounded: false
+            });
+            coopState.spawnTimer = Math.max(60, 150 - coopState.wave * 15);
+            document.getElementById('coop-wave').innerText = coopState.wave;
+            document.getElementById('coop-kills').innerText = coopState.kills;
+        }
+
+        for(let i=zombies.length-1; i>=0; i--) {
+            let z = zombies[i];
+            if (z.hp <= 0) {
+                coopState.kills++;
+                if (coopState.kills % 10 === 0) { coopState.wave++; showWarning("WAVE " + coopState.wave, 2000); }
+                spawnParticles(z.x+20, z.y+25, '#ff8c00', 30, 8);
+                zombies.splice(i, 1); continue;
+            }
+            z.vy += 0.7; z.x += z.vx; z.y += z.vy; z.isGrounded = false;
+            
+            map.platforms.forEach(plat => { let prevY = z.y - z.vy; if (prevY + z.h <= plat.y + 1 && z.y + z.h >= plat.y) { if (z.x + z.w > plat.x && z.x < plat.x + plat.w) { z.y = plat.y - z.h; z.vy = 0; z.isGrounded = true; } } });
+            if (z.y + z.h > map.floor) { z.y = map.floor - z.h; z.vy = 0; z.isGrounded = true; }
+            if (z.x < map.walls[0].x + map.walls[0].w) z.x = map.walls[0].x + map.walls[0].w;
+            if (z.x + z.w > map.walls[1].x) z.x = map.walls[1].x - z.w;
+
+            let p1Dist = player.hp > 0 ? Math.abs(player.x - z.x) : 9999;
+            let p2Dist = otherPlayer.hp > 0 ? Math.abs(otherPlayer.x - z.x) : 9999;
+            let target = null;
+            if (p1Dist !== 9999 || p2Dist !== 9999) target = p1Dist < p2Dist ? player : otherPlayer;
+            
+            if (target) {
+                if (target.x < z.x) { z.vx -= 0.15; z.facing = -1; } else { z.vx += 0.15; z.facing = 1; }
+            }
+            z.vx *= 0.9;
+            let maxSpd = Math.min(6, 2 + coopState.wave * 0.3);
+            if (Math.abs(z.vx) > maxSpd) z.vx = Math.sign(z.vx) * maxSpd;
+            
+            if (z.isGrounded && Math.abs(z.vx) < 0.5 && Math.random() < 0.05 && target && target.y < z.y) { z.vy = -13; } // Jump if stuck
+        }
+    }
+
     player.update(); syncData();
 
-    if(otherPlayer.hp <= 0 && !gameOver) {
+    // PVP Win Condition
+    if(!isCoop && otherPlayer.hp <= 0 && !gameOver) {
         showWarning("<b style='color:#00e5ff'>VICTORY!</b><br><span style='font-size:20px; color:#aaa'>+1 Win Recorded!</span>", 3000);
-        gameOver = true; 
-        
-        // Handle Leaderboard Record
-        winCount++; localStorage.setItem('hk_pvp_wins', winCount);
+        gameOver = true; winCount++; localStorage.setItem('hk_pvp_wins', winCount);
         matchHistory.push({ name: otherPlayer.name, skin: otherPlayer.skin, avatar: otherPlayer.avatar, date: new Date().toLocaleString() });
-        if(matchHistory.length > 20) matchHistory.shift(); // Keep max 20 history
+        if(matchHistory.length > 20) matchHistory.shift();
         localStorage.setItem('hk_pvp_history', JSON.stringify(matchHistory));
-        
         setTimeout(() => location.reload(), 3000);
+    }
+    
+    // Co-op Game Over Condition
+    if (isCoop && player.hp <= 0 && otherPlayer.hp <= 0 && !gameOver) {
+        showWarning("<b style='color:#ff3333'>THE SWARM CONSUMED YOU</b><br><span style='font-size:20px; color:#fff'>Total Kills: " + coopState.kills + "</span>", 5000);
+        gameOver = true; setTimeout(() => location.reload(), 5000);
     }
 
     for(let i = projectiles.length - 1; i >= 0; i--) {
         let p = projectiles[i]; p.x += p.vx; p.life--;
-        let hitMe = p.isFromOpp && checkRectOverlap(p, player) && player.invincible <= 0 && !player.isDash;
+        
         let hitOpp = !p.isFromOpp && checkRectOverlap(p, otherPlayer);
-
-        if(hitMe) { player.takeDamage(2, p.x); projectiles.splice(i, 1); } 
-        else if (hitOpp) { spawnParticles(otherPlayer.x+15, otherPlayer.y+20, '#fff', 20, 10); hitStopFrames = 3; screenShake = 8; projectiles.splice(i, 1); } 
-        else if(p.life <= 0) { projectiles.splice(i, 1); }
+        
+        if (!isCoop) {
+            let hitMe = p.isFromOpp && checkRectOverlap(p, player) && player.invincible <= 0 && !player.isDash;
+            if(hitMe) { player.takeDamage(2, p.x); projectiles.splice(i, 1); continue; } 
+            else if (hitOpp) { spawnParticles(otherPlayer.x+15, otherPlayer.y+20, '#fff', 20, 10); hitStopFrames = 3; screenShake = 8; projectiles.splice(i, 1); continue; } 
+        } else {
+            // Co-op Spell Hits Zombies
+            let zHit = false;
+            for(let j = 0; j < zombies.length; j++) {
+                if (checkRectOverlap(p, zombies[j])) {
+                    spawnParticles(zombies[j].x+20, zombies[j].y+25, '#00e5ff', 20, 10);
+                    hitStopFrames = 3; screenShake = 8;
+                    if (isHost && !p.isFromOpp) { zombies[j].hp -= 30; zombies[j].vx = p.vx > 0 ? 15 : -15; }
+                    else if (!p.isFromOpp) { conn.send({ type: 'zombie_hit', id: zombies[j].id, dmg: 30, sourceX: p.x }); }
+                    zHit = true; break;
+                }
+            }
+            if (zHit) { projectiles.splice(i, 1); continue; }
+        }
+        
+        if(p.life <= 0) { projectiles.splice(i, 1); }
     }
     particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.life -= 0.02; if(p.life <= 0) particles.splice(i, 1); });
 
@@ -515,7 +654,18 @@ function draw() {
     ctx.fillStyle = map.themeColor; map.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
     ctx.fillStyle = map.platColor; map.platforms.forEach(p => { ctx.fillRect(p.x, p.y, p.w, p.h); });
 
-    if(gameStarted) { if(otherPlayer.hp > 0) player.draw.call(otherPlayer, false); if(player.hp > 0) player.draw(true); }
+    if(gameStarted) { 
+        player.draw.call(otherPlayer, false); 
+        player.draw(true); 
+    }
+
+    if (isCoop) {
+        zombies.forEach(z => {
+            ctx.fillStyle = '#1a2e1a'; ctx.fillRect(z.x, z.y, z.w, z.h); // Zombie Body
+            ctx.fillStyle = '#ff8c00'; let eyeX = z.facing === 1 ? z.x + 20 : z.x + 5; ctx.fillRect(eyeX, z.y + 10, 10, 5); // Eyes
+            ctx.fillStyle = '#f00'; ctx.fillRect(z.x, z.y - 10, z.w * (z.hp / z.maxHp), 4); // Zombie HP
+        });
+    }
 
     projectiles.forEach(p => { 
         let spellColor = getSkinColors(p.skin, false).spell;
