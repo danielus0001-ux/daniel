@@ -8,16 +8,21 @@
         body { margin: 0; overflow: hidden; background: #020205; color: white; font-family: 'Times New Roman', serif; }
         canvas { display: block; margin: 0 auto; box-shadow: inset 0 0 150px rgba(0,0,0,1); cursor: crosshair; }
         
-        /* Lobby UI */
-        #lobby { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 10, 20, 0.95); padding: 30px; border: 2px solid #00e5ff; border-radius: 10px; z-index: 100; text-align: center; box-shadow: 0 0 30px rgba(0,229,255,0.2); }
+        /* Lobby List UI */
+        #lobby { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 10, 20, 0.95); padding: 30px; border: 2px solid #00e5ff; border-radius: 10px; z-index: 100; text-align: center; box-shadow: 0 0 30px rgba(0,229,255,0.2); width: 450px; }
         #lobby h2 { color: #00e5ff; text-shadow: 0 0 10px #00e5ff; margin-top: 0; letter-spacing: 2px;}
-        .input-group { margin-bottom: 20px; }
-        input { padding: 12px; width: 250px; border: 1px solid #444; background: #000; color: #00e5ff; text-align: center; font-size: 16px; font-weight: bold;}
-        input:focus { outline: none; border-color: #00e5ff; }
-        button { padding: 12px 24px; background: #00e5ff; border: none; color: #000; font-weight: bold; cursor: pointer; transition: 0.2s; margin: 5px; font-size: 14px;}
-        button:hover { background: #fff; box-shadow: 0 0 15px #00e5ff; transform: scale(1.05);}
+        
+        .server-list { margin-top: 20px; text-align: left; background: #000; border: 1px solid #444; border-radius: 5px; padding: 10px; height: 250px; overflow-y: auto; }
+        .server-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px dashed #333; }
+        .server-row:last-child { border-bottom: none; }
+        .server-name { font-size: 16px; font-weight: bold; color: #fff; }
+        .server-actions button { padding: 8px 15px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 12px; margin-left: 5px; border-radius: 3px; }
+        .btn-host { background: #00e5ff; color: #000; }
+        .btn-host:hover { background: #fff; box-shadow: 0 0 10px #00e5ff; }
+        .btn-join { background: #ff3333; color: #fff; }
+        .btn-join:hover { background: #fff; color: #ff3333; box-shadow: 0 0 10px #ff3333; }
+        
         #conn-status { font-size: 14px; color: #aaa; margin-top: 15px; height: 20px; }
-        #invite-box { display: none; margin-top: 20px; padding: 15px; background: #111; border: 1px dashed #00e5ff; }
 
         /* Game UI */
         #ui { position: absolute; top: 20px; left: 20px; text-shadow: 2px 2px 2px #000; z-index: 10; pointer-events: none; display: none;}
@@ -30,25 +35,58 @@
         
         b.highlight { color: #00e5ff; } 
         b.dash { color: #fff; text-shadow: 0 0 8px #fff; border-bottom: 1px dotted #fff; }
+        
+        /* Custom Scrollbar for server list */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00e5ff; }
     </style>
 </head>
 <body>
 
     <div id="lobby">
-        <h2>Nanshan PVP Arena</h2>
-        <div class="input-group">
-            <input type="text" id="roomId" placeholder="Enter Room ID (Alphanumeric)" maxlength="16">
-        </div>
-        <button id="btn-host" onclick="initMultiplayer('host')">Create Room (Host)</button>
-        <button id="btn-join" onclick="initMultiplayer('join')">Join Room (Challenger)</button>
+        <h2>PVP Arena Server List</h2>
         
-        <div id="invite-box">
-            <p style="margin:0 0 10px 0; font-size: 14px; color: #00e5ff;">Room created! Share this link with your opponent:</p>
-            <input type="text" id="inviteLink" readonly style="width: 280px; font-size: 12px; color: #aaa;">
-            <button onclick="copyInvite()" style="padding: 8px 15px; font-size: 12px;">Copy Link</button>
+        <div class="server-list">
+            <div class="server-row">
+                <div class="server-name">Arena 1: The Crossroads</div>
+                <div class="server-actions">
+                    <button class="btn-host" onclick="initMultiplayer('host', 'arena1')">Host</button>
+                    <button class="btn-join" onclick="initMultiplayer('join', 'arena1')">Join</button>
+                </div>
+            </div>
+            <div class="server-row">
+                <div class="server-name">Arena 2: Greenpath</div>
+                <div class="server-actions">
+                    <button class="btn-host" onclick="initMultiplayer('host', 'arena2')">Host</button>
+                    <button class="btn-join" onclick="initMultiplayer('join', 'arena2')">Join</button>
+                </div>
+            </div>
+            <div class="server-row">
+                <div class="server-name">Arena 3: City of Tears</div>
+                <div class="server-actions">
+                    <button class="btn-host" onclick="initMultiplayer('host', 'arena3')">Host</button>
+                    <button class="btn-join" onclick="initMultiplayer('join', 'arena3')">Join</button>
+                </div>
+            </div>
+            <div class="server-row">
+                <div class="server-name">Arena 4: Crystal Peak</div>
+                <div class="server-actions">
+                    <button class="btn-host" onclick="initMultiplayer('host', 'arena4')">Host</button>
+                    <button class="btn-join" onclick="initMultiplayer('join', 'arena4')">Join</button>
+                </div>
+            </div>
+            <div class="server-row">
+                <div class="server-name">Arena 5: The Abyss</div>
+                <div class="server-actions">
+                    <button class="btn-host" onclick="initMultiplayer('host', 'arena5')">Host</button>
+                    <button class="btn-join" onclick="initMultiplayer('join', 'arena5')">Join</button>
+                </div>
+            </div>
         </div>
 
-        <div id="conn-status">Waiting for action...</div>
+        <div id="conn-status">Select an Arena to play.</div>
     </div>
 
     <div id="ui">
@@ -70,39 +108,26 @@
     <canvas id="gameCanvas"></canvas>
 
 <script>
-// ================= URL Parsing & UI Init =================
-const urlParams = new URLSearchParams(window.location.search);
-const roomParam = urlParams.get('room');
-if (roomParam) {
-    document.getElementById('roomId').value = roomParam;
-    document.getElementById('conn-status').innerText = "Invite link detected, click [Join Room]";
-}
-
 const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
 function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; } window.addEventListener('resize', resize); resize();
 
 const keys = { w:false, a:false, s:false, d:false, j:false, k:false, l:false, f:false, space:false };
 const prevKeys = { ...keys };
 
-// ================= WebRTC Networking (STUN + TURN) =================
+// ================= WebRTC Networking =================
 let peer, conn;
 let isHost = false;
 let gameStarted = false;
 
-function cleanRoomId(raw) { return raw.replace(/[^a-zA-Z0-9]/g, ''); }
-
-function initMultiplayer(role) {
-    let rawId = document.getElementById('roomId').value.trim();
-    if(!rawId) rawId = Math.random().toString(36).substring(2, 8); 
-    const cleanId = cleanRoomId(rawId);
-    document.getElementById('roomId').value = cleanId;
+function initMultiplayer(role, arenaId) {
+    // Disable buttons to prevent spam clicks
+    document.querySelectorAll('.server-actions button').forEach(btn => btn.disabled = true);
     
     const statusEl = document.getElementById('conn-status');
     statusEl.innerText = "Connecting to global relay servers...";
-    document.getElementById('btn-host').disabled = true;
-    document.getElementById('btn-join').disabled = true;
 
-    const globalId = 'nanshan-pvp-' + cleanId; 
+    // Use a fixed prefix so your game arenas don't collide with other games online
+    const globalId = 'nanshan-pvp-v2-' + arenaId; 
     
     if(peer) peer.destroy();
 
@@ -134,21 +159,17 @@ function initMultiplayer(role) {
     peer.on('open', (myId) => {
         if(role === 'host') {
             isHost = true;
-            statusEl.innerText = "Room created! Waiting for opponent...";
+            statusEl.innerText = `Hosting ${arenaId.toUpperCase()}! Waiting for opponent...`;
             statusEl.style.color = "#00e5ff";
-            
-            const inviteUrl = window.location.origin + window.location.pathname + '?room=' + cleanId;
-            document.getElementById('inviteLink').value = inviteUrl;
-            document.getElementById('invite-box').style.display = 'block';
         } else {
-            statusEl.innerText = "Attempting to connect to room...";
+            statusEl.innerText = `Attempting to join ${arenaId.toUpperCase()}...`;
             connectToHost(globalId);
         }
     });
 
     peer.on('connection', (c) => {
         if(isHost && conn && conn.open) {
-            c.send({ type: 'error', msg: 'Room is full!' });
+            c.send({ type: 'error', msg: 'Arena is full!' });
             setTimeout(() => c.close(), 500);
             return;
         }
@@ -158,13 +179,13 @@ function initMultiplayer(role) {
 
     peer.on('error', err => {
         console.error("PeerJS Error:", err);
-        document.getElementById('btn-host').disabled = false;
-        document.getElementById('btn-join').disabled = false;
+        document.querySelectorAll('.server-actions button').forEach(btn => btn.disabled = false);
+        
         if(err.type === 'peer-unavailable') {
-            statusEl.innerText = "Error: Room not found. Did the host leave?";
+            statusEl.innerText = "Error: Nobody is hosting this Arena yet. Click 'Host' to start one!";
             statusEl.style.color = "#ff3333";
         } else if (err.type === 'unavailable-id') {
-            statusEl.innerText = "Error: Room ID taken, try another!";
+            statusEl.innerText = "Error: This Arena is already hosted! Click 'Join' instead.";
             statusEl.style.color = "#ff3333";
         } else {
             statusEl.innerText = "Connection failed: " + err.type;
@@ -176,12 +197,6 @@ function initMultiplayer(role) {
 function connectToHost(hostId) {
     conn = peer.connect(hostId, { reliable: true });
     setupDataHandlers();
-}
-
-function copyInvite() {
-    const link = document.getElementById('inviteLink');
-    link.select(); document.execCommand('copy');
-    document.getElementById('conn-status').innerText = "Link copied! Share it with your opponent.";
 }
 
 function setupDataHandlers() {
@@ -208,7 +223,7 @@ function setupDataHandlers() {
 
     conn.on('close', () => {
         if (!gameOver) {
-            alert("Opponent disconnected.");
+            alert("Opponent disconnected. Returning to Lobby.");
             location.reload();
         }
     });
@@ -268,6 +283,8 @@ const player = {
 
             if(ap && this.attackT <= 0) {
                 this.attackT = 16; this.attackD = keys.w ? 'up' : (keys.s && !this.isGrounded ? 'down' : 'fw');
+                
+                // Enlarge Hitbox (85x80)
                 let ab = { w: 85, h: 80 };
                 if(this.attackD === 'up'){ ab.x=this.x-27; ab.y=this.y-70; } 
                 else if(this.attackD === 'down'){ ab.x=this.x-27; ab.y=this.y+this.h-10; } 
@@ -310,6 +327,7 @@ const player = {
         if(this.hp <= 0 && !gameOver) { 
             showWarning("<b style='color:#ff3333'>YOU DIED</b><br><span style='font-size:20px; color:#aaa'>Returning to lobby...</span>", 3000); 
             gameOver = true; 
+            // 返回主菜单
             setTimeout(() => location.reload(), 3000);
         }
     },
@@ -353,6 +371,7 @@ function update() {
     if(otherPlayer.hp <= 0 && !gameOver) {
         showWarning("<b style='color:#00e5ff'>VICTORY!</b><br><span style='font-size:20px; color:#aaa'>Returning to lobby...</span>", 3000);
         gameOver = true;
+        // 返回主菜单
         setTimeout(() => location.reload(), 3000);
     }
 
