@@ -9,20 +9,23 @@
         canvas { display: block; margin: 0 auto; box-shadow: inset 0 0 150px rgba(0,0,0,1); cursor: crosshair; }
         
         /* Lobby UI */
-        #lobby { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 10, 20, 0.95); padding: 25px; border: 2px solid #00e5ff; border-radius: 12px; z-index: 100; width: 520px; box-shadow: 0 0 40px rgba(0,229,255,0.3); }
+        #lobby { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 10, 20, 0.95); padding: 25px; border: 2px solid #00e5ff; border-radius: 12px; z-index: 100; width: 550px; box-shadow: 0 0 40px rgba(0,229,255,0.3); }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
         h2 { color: #00e5ff; margin: 0; font-size: 20px; letter-spacing: 1px; text-shadow: 0 0 10px #00e5ff;}
-        #btn-refresh { padding: 4px 10px; background: #111; color: #00e5ff; border: 1px solid #00e5ff; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s;}
-        #btn-refresh:hover { background: #00e5ff; color: #000; box-shadow: 0 0 10px #00e5ff;}
+        .btn-small { padding: 4px 10px; background: #111; color: #00e5ff; border: 1px solid #00e5ff; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s;}
+        .btn-small:hover { background: #00e5ff; color: #000; box-shadow: 0 0 10px #00e5ff;}
         
         /* Profile & Skin Bar */
-        .top-bar { display: flex; gap: 10px; margin-bottom: 15px; }
-        .stat-box { flex: 1; background: #111; padding: 8px; border-radius: 6px; border: 1px solid #444; display: flex; align-items: center; font-size: 13px;}
-        .stat-box input { background: transparent; border: none; border-bottom: 1px dashed #00e5ff; color: #fff; width: 60px; outline: none; margin-left: 5px; font-weight: bold; text-align: center;}
+        .top-bar { display: flex; gap: 10px; margin-bottom: 15px; align-items: stretch; }
+        .stat-box { flex: 1; background: #111; padding: 8px; border-radius: 6px; border: 1px solid #444; display: flex; align-items: center; justify-content: center; font-size: 13px; position: relative;}
+        .stat-box input[type="text"] { background: transparent; border: none; border-bottom: 1px dashed #00e5ff; color: #fff; width: 70px; outline: none; margin-left: 5px; font-weight: bold; text-align: center;}
         .stat-box select { background: #000; color: #00e5ff; border: 1px solid #00e5ff; padding: 2px; border-radius: 4px; outline: none; cursor: pointer; margin-left: 5px; font-size: 12px;}
         
+        .avatar-preview { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid #00e5ff; cursor: pointer; transition: 0.2s; }
+        .avatar-preview:hover { box-shadow: 0 0 10px #00e5ff; transform: scale(1.1); }
+        
         /* Server List */
-        .server-list { background: #05050a; border: 1px solid #333; border-radius: 6px; height: 300px; overflow-y: auto; padding: 5px; }
+        .server-list { background: #05050a; border: 1px solid #333; border-radius: 6px; height: 250px; overflow-y: auto; padding: 5px; }
         .server-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #222; transition: background 0.2s; }
         .server-row:hover { background: rgba(0, 229, 255, 0.05); }
         .server-row:last-child { border-bottom: none; }
@@ -38,12 +41,22 @@
         
         #conn-status { font-size: 13px; color: #aaa; margin-top: 15px; text-align: center; }
 
+        /* Leaderboard Modal */
+        #leaderboard-modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15, 15, 25, 0.98); padding: 25px; border: 2px solid #ffd700; border-radius: 12px; z-index: 200; width: 400px; box-shadow: 0 0 40px rgba(255,215,0,0.3); }
+        .lb-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 10px; }
+        .lb-header h3 { color: #ffd700; margin: 0; }
+        .lb-list { max-height: 300px; overflow-y: auto; }
+        .lb-row { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #333; gap: 15px; }
+        .lb-avatar { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #777; object-fit: cover;}
+
         /* Game HUD */
-        #ui { position: absolute; top: 20px; left: 20px; text-shadow: 2px 2px 2px #000; z-index: 10; pointer-events: none; display: none;}
-        .bar-bg { width: 200px; height: 12px; background: #222; border: 2px solid #555; margin-top: 5px; margin-bottom: 5px; }
+        #ui { position: absolute; top: 20px; left: 20px; text-shadow: 2px 2px 2px #000; z-index: 10; pointer-events: none; display: none; width: 100%;}
+        .player-hud { display: flex; align-items: center; gap: 15px; margin-bottom: 10px; }
+        .hud-avatar { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 10px #000; object-fit: cover; }
+        .bar-bg { width: 200px; height: 14px; background: #222; border: 2px solid #555; margin-top: 5px; }
         .hp-fill { height: 100%; background: #eee; transition: width 0.1s; }
         .soul-fill { height: 100%; background: #00e5ff; transition: width 0.2s; box-shadow: 0 0 10px #00e5ff; }
-        .instruction { font-size: 14px; color: #aaa; margin-top: 15px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; border: 1px solid #333; line-height: 1.6;}
+        .instruction { font-size: 14px; color: #aaa; margin-top: 15px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; border: 1px solid #333; line-height: 1.6; display: inline-block;}
         #warning { position: absolute; top: 30%; left: 50%; transform: translateX(-50%); font-size: 36px; color: #ff3333; font-weight: bold; text-shadow: 0 0 20px #f00; display: none; z-index: 10; pointer-events: none; text-align: center;}
         
         ::-webkit-scrollbar { width: 8px; }
@@ -54,17 +67,35 @@
 </head>
 <body>
 
+    <div id="leaderboard-modal">
+        <div class="lb-header">
+            <h3>🏆 Hall of Fame (Defeated Rivals)</h3>
+            <button class="btn-small" onclick="document.getElementById('leaderboard-modal').style.display='none'">Close</button>
+        </div>
+        <div class="lb-list" id="lb-content"></div>
+    </div>
+
     <div id="lobby">
         <div class="header">
-            <h2>LAN Arena List</h2>
-            <button id="btn-refresh" onclick="refreshAllRooms()">🔄 Refresh</button>
+            <h2>LAN Arena Pro</h2>
+            <div>
+                <button class="btn-small" style="border-color:#ffd700; color:#ffd700;" onclick="showLeaderboard()">🏆 排行榜</button>
+                <button class="btn-small" id="btn-refresh" onclick="refreshAllRooms()">🔄 刷新</button>
+            </div>
         </div>
 
         <div class="top-bar">
-            <div class="stat-box">
-                👤 <input type="text" id="username-input" value="Knight" maxlength="8">
+            <input type="file" id="avatar-upload" accept="image/*" style="display:none;" onchange="handleAvatarUpload(event)">
+            
+            <div class="stat-box" style="flex: 0.5;" title="点击更换头像 (照片格式)">
+                <img id="my-avatar-preview" class="avatar-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23222'/><text x='50' y='50' font-family='Arial' font-size='40' fill='%23fff' text-anchor='middle' dominant-baseline='central'>👤</text></svg>" onclick="document.getElementById('avatar-upload').click()">
             </div>
-            <div class="stat-box">
+
+            <div class="stat-box" style="flex: 1.2;">
+                👤 <input type="text" id="username-input" value="Knight" maxlength="8" placeholder="名字">
+            </div>
+            
+            <div class="stat-box" style="flex: 1.5;">
                 🎭 
                 <select id="skin-choice">
                     <option value="original">Original</option>
@@ -73,8 +104,9 @@
                     <option value="infected">Infected</option>
                 </select>
             </div>
-            <div class="stat-box" style="justify-content:center;">
-                🏆 Wins: &nbsp;<span id="win-count" style="color:#ffd700; font-weight:bold; font-size:16px;">0</span>
+            
+            <div class="stat-box" style="flex: 0.8; justify-content:center;">
+                🏆 Win: <span id="win-count" style="color:#ffd700; font-weight:bold; font-size:16px; margin-left:5px;">0</span>
             </div>
         </div>
         
@@ -83,12 +115,24 @@
     </div>
 
     <div id="ui">
-        <div><span id="my-name-label" style="color:#00e5ff; font-weight:bold;">You</span> (HP): <span id="player-hp">25</span> / 25</div>
-        <div class="bar-bg"><div class="hp-fill" id="hp-bar" style="width: 100%;"></div></div>
-        <div><span id="opp-name-label" style="color:#ff3333; font-weight:bold;">Enemy</span> (HP): <span id="opp-hp-val">25</span> / 25</div>
-        <div class="bar-bg"><div class="hp-fill" id="opp-hp-bar" style="width: 100%; background: #ff3333;"></div></div>
-        <div>Soul: <span id="player-soul">0</span> / 99</div>
-        <div class="bar-bg"><div class="soul-fill" id="soul-bar" style="width: 0%;"></div></div>
+        <div style="display:flex; justify-content: space-between; padding-right: 40px;">
+            <div class="player-hud">
+                <img id="ui-my-avatar" class="hud-avatar" src="" style="border-color:#00e5ff;">
+                <div>
+                    <div><span id="my-name-label" style="color:#00e5ff; font-weight:bold; font-size:18px;">You</span></div>
+                    <div class="bar-bg"><div class="hp-fill" id="hp-bar" style="width: 100%;"></div></div>
+                    <div class="bar-bg" style="height:8px; margin-top:2px;"><div class="soul-fill" id="soul-bar" style="width: 0%;"></div></div>
+                </div>
+            </div>
+
+            <div class="player-hud" style="flex-direction: row-reverse; text-align: right;">
+                <img id="ui-opp-avatar" class="hud-avatar" src="" style="border-color:#ff3333;">
+                <div>
+                    <div><span id="opp-name-label" style="color:#ff3333; font-weight:bold; font-size:18px;">Enemy</span></div>
+                    <div class="bar-bg"><div class="hp-fill" id="opp-hp-bar" style="width: 100%; background: #ff3333; float:right;"></div></div>
+                </div>
+            </div>
+        </div>
         
         <div class="instruction">
             [A/D] Move | [W/Space] Jump | <b style="color:#fff; border-bottom:1px dotted #fff;">[L] Dash</b><br>
@@ -102,30 +146,82 @@
     <canvas id="gameCanvas"></canvas>
 
 <script>
-// ================= Local Storage & Profiles =================
+// ================= Local Storage (Profiles, Avatar & Leaderboard) =================
 let savedName = localStorage.getItem('hk_pvp_name') || 'Knight';
 let savedSkin = localStorage.getItem('hk_pvp_skin') || 'original';
 let winCount = parseInt(localStorage.getItem('hk_pvp_wins') || '0');
+let savedAvatar = localStorage.getItem('hk_pvp_avatar') || document.getElementById('my-avatar-preview').src;
+let matchHistory = JSON.parse(localStorage.getItem('hk_pvp_history') || '[]');
 
 document.getElementById('username-input').value = savedName;
 document.getElementById('skin-choice').value = savedSkin;
 document.getElementById('win-count').innerText = winCount;
+document.getElementById('my-avatar-preview').src = savedAvatar;
 
 document.getElementById('username-input').addEventListener('input', (e) => localStorage.setItem('hk_pvp_name', e.target.value));
 document.getElementById('skin-choice').addEventListener('change', (e) => localStorage.setItem('hk_pvp_skin', e.target.value));
 
-// Skin Theme Dictionary
+// Handle Avatar Image Upload & Base64 Compression (Max 64x64)
+function handleAvatarUpload(event) {
+    const file = event.target.files[0];
+    if (!file || !file.type.startsWith('image/')) { alert("请上传照片/图片格式！"); return; }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            // Crop center
+            let size = Math.min(img.width, img.height);
+            let sx = (img.width - size) / 2; let sy = (img.height - size) / 2;
+            ctx.drawImage(img, sx, sy, size, size, 0, 0, 64, 64);
+            const base64 = canvas.toDataURL('image/jpeg', 0.8); // Compress
+            
+            localStorage.setItem('hk_pvp_avatar', base64);
+            document.getElementById('my-avatar-preview').src = base64;
+            savedAvatar = base64;
+        }
+        img.src = e.target.result;
+    }
+    reader.readAsDataURL(file);
+}
+
+// Show Leaderboard (Hall of Fame)
+function showLeaderboard() {
+    const content = document.getElementById('lb-content');
+    content.innerHTML = '';
+    if (matchHistory.length === 0) {
+        content.innerHTML = '<p style="color:#aaa; text-align:center;">还没有击败过对手，快去战斗吧！</p>';
+    } else {
+        // Reverse array to show newest first
+        [...matchHistory].reverse().forEach(record => {
+            content.innerHTML += `
+                <div class="lb-row">
+                    <img src="${record.avatar}" class="lb-avatar">
+                    <div>
+                        <div style="color:#fff; font-weight:bold;">Defeated: <span style="color:#ff3333">${record.name}</span></div>
+                        <div style="font-size:11px; color:#aaa;">Date: ${record.date} | Skin: ${record.skin}</div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    document.getElementById('leaderboard-modal').style.display = 'block';
+}
+
 function getSkinColors(skinStr, isDash) {
     if (isDash) return { body: '#000', cloak: '#111', spell: '#333' };
     switch(skinStr) {
-        case 'void': return { body: '#1a1a1a', cloak: '#000000', spell: '#888888' }; // Black/Shadow
-        case 'lifeblood': return { body: '#00e5ff', cloak: '#003366', spell: '#00e5ff' }; // Cyan/Blue
-        case 'infected': return { body: '#ff8c00', cloak: '#662200', spell: '#ff8c00' }; // Orange
-        default: return { body: '#ffffff', cloak: '#222222', spell: '#ffffff' }; // Classic White
+        case 'void': return { body: '#1a1a1a', cloak: '#000000', spell: '#888888' };
+        case 'lifeblood': return { body: '#00e5ff', cloak: '#003366', spell: '#00e5ff' };
+        case 'infected': return { body: '#ff8c00', cloak: '#662200', spell: '#ff8c00' };
+        default: return { body: '#ffffff', cloak: '#222222', spell: '#ffffff' };
     }
 }
 
-// ================= Arena Setup =================
+// ================= Arena & Network Init =================
 const arenas = [
     { id: 'arena1', name: "The Crossroads", type: "(Flat)" }, { id: 'arena2', name: "Greenpath", type: "(Platforms)" },
     { id: 'arena3', name: "City of Tears", type: "(High)" },  { id: 'arena4', name: "Crystal Peak", type: "(Stairs)" },
@@ -150,34 +246,27 @@ arenas.forEach(arena => {
 
 const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
 function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; } window.addEventListener('resize', resize); resize();
-
 const keys = { w:false, a:false, s:false, d:false, j:false, k:false, l:false, f:false, space:false };
 const prevKeys = { ...keys };
 
-// ================= P2P Polling Radar =================
-let lobbyPeer = null;
-let probeCallbacks = {};
-
+// ================= P2P Radar =================
+let lobbyPeer = null; let probeCallbacks = {};
 function initLobbyRadar() {
     lobbyPeer = new Peer(null, { config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }] } });
-    lobbyPeer.on('open', () => { refreshAllRooms(); });
+    lobbyPeer.on('open', () => refreshAllRooms());
     lobbyPeer.on('error', (err) => {
-        if (err.type === 'peer-unavailable') {
-            for (let targetId in probeCallbacks) { if (err.message.includes(targetId)) { probeCallbacks[targetId](0); delete probeCallbacks[targetId]; } }
-        }
+        if (err.type === 'peer-unavailable') { for (let targetId in probeCallbacks) { if (err.message.includes(targetId)) { probeCallbacks[targetId](0); delete probeCallbacks[targetId]; } } }
     });
 }
-
 function checkRoom(arenaId) {
     return new Promise((resolve) => {
-        let targetId = 'nspvp-pro-v5-' + arenaId;
+        let targetId = 'nspvp-pro-v6-' + arenaId;
         let timeout = setTimeout(() => { if (probeCallbacks[targetId]) { probeCallbacks[targetId](0); delete probeCallbacks[targetId]; } }, 1500);
         probeCallbacks[targetId] = (result) => { clearTimeout(timeout); resolve(result); };
         let c = lobbyPeer.connect(targetId, { metadata: { type: 'probe' } });
         if(c) { c.on('open', () => { c.on('data', (data) => { if(data.type === 'probe_reply') { probeCallbacks[targetId](data.players); delete probeCallbacks[targetId]; c.close(); } }); }); }
     });
 }
-
 async function refreshAllRooms() {
     if(!lobbyPeer || !lobbyPeer.open) return;
     let btn = document.getElementById('btn-refresh'); btn.innerText = "Scanning..."; btn.disabled = true;
@@ -189,15 +278,12 @@ async function refreshAllRooms() {
             else if(count === 2) { span.innerText = "2 Players (Full)"; span.style.color = "#ff3333"; }
         });
     });
-    await Promise.all(promises);
-    btn.innerText = "🔄 Refresh"; btn.disabled = false;
+    await Promise.all(promises); btn.innerText = "🔄 Refresh"; btn.disabled = false;
 }
 initLobbyRadar();
 
-// ================= WebRTC Game Networking =================
-let peer, conn;
-let isHost = false, gameStarted = false;
-
+// ================= Game Network & Mechanics =================
+let peer, conn, isHost = false, gameStarted = false;
 const map = { floor: 650, walls: [{x: 50, y:-500, w: 20, h:1500}, {x: 1400, y:-500, w: 20, h:1500}], platforms: [], themeColor: '#11151c', platColor: '#444' };
 
 function loadMap(arenaId) {
@@ -213,15 +299,12 @@ function initMultiplayer(role, arenaId) {
     document.getElementById('btn-refresh').disabled = true;
     document.getElementById('conn-status').innerText = "Connecting to relay servers...";
 
-    // Capture User Profile Data
     player.name = document.getElementById('username-input').value || 'Knight';
     player.skin = document.getElementById('skin-choice').value;
-    document.getElementById('my-name-label').innerText = player.name;
+    player.avatar = savedAvatar;
 
     if (lobbyPeer) { lobbyPeer.destroy(); lobbyPeer = null; }
-    loadMap(arenaId); 
-    const globalId = 'nspvp-pro-v5-' + arenaId; 
-    if(peer) peer.destroy();
+    loadMap(arenaId); const globalId = 'nspvp-pro-v6-' + arenaId; if(peer) peer.destroy();
 
     peer = new Peer(role === 'host' ? globalId : null, { 
         config: { 'iceServers': [ { urls: 'stun:stun.l.google.com:19302' }, { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' } ] }
@@ -237,11 +320,7 @@ function initMultiplayer(role, arenaId) {
         if(isHost && conn && conn.open) { c.send({ type: 'error', msg: 'Arena is full!' }); setTimeout(() => c.close(), 500); return; }
         conn = c; setupDataHandlers();
     });
-
-    peer.on('error', err => {
-        console.error(err); document.querySelectorAll('.server-actions button').forEach(btn => btn.disabled = false);
-        document.getElementById('conn-status').innerText = "Connection failed/Nobody hosting.";
-    });
+    peer.on('error', err => { console.error(err); document.querySelectorAll('.server-actions button').forEach(btn => btn.disabled = false); document.getElementById('conn-status').innerText = "Connection failed."; });
 }
 
 function connectToHost(hostId) { conn = peer.connect(hostId, { reliable: true }); setupDataHandlers(); }
@@ -252,22 +331,35 @@ function setupDataHandlers() {
         document.getElementById('ui').style.display = 'block';
         gameStarted = true;
         if(isHost) { player.x = 200; player.y = 100; player.facing = 1; } else { player.x = 1200; player.y = 100; player.facing = -1; }
+        
+        // Handshake: Send My Profile (Avatar, Name, Skin) immediately once
+        conn.send({ type: 'profile_sync', name: player.name, skin: player.skin, avatar: player.avatar });
+        
+        document.getElementById('my-name-label').innerText = player.name;
+        document.getElementById('ui-my-avatar').src = player.avatar;
+        
         showWarning("<b style='color:#00e5ff'>FIGHT!</b>", 3000);
     });
 
     conn.on('data', (data) => {
         if(data.type === 'error') { alert(data.msg); location.reload(); return; }
+        
+        // Receive Opponent Profile Data
+        if(data.type === 'profile_sync') {
+            otherPlayer.name = data.name; 
+            otherPlayer.skin = data.skin;
+            otherPlayer.avatar = data.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23555'/><text x='50' y='50' font-family='Arial' font-size='40' fill='%23fff' text-anchor='middle' dominant-baseline='central'>?</text></svg>";
+            document.getElementById('opp-name-label').innerText = otherPlayer.name;
+            document.getElementById('ui-opp-avatar').src = otherPlayer.avatar;
+            return; // Don't process physics on this packet
+        }
+
+        // Physics Sync
         otherPlayer.x = data.x; otherPlayer.y = data.y; otherPlayer.hp = data.hp;
         otherPlayer.facing = data.facing; otherPlayer.isDash = data.isDash;
         otherPlayer.attackT = data.attackT; otherPlayer.attackD = data.attackD;
-        otherPlayer.isFocus = data.isFocus; otherPlayer.focusT = data.focusT;
-        otherPlayer.vx = data.vx;
-        
-        // Setup Opponent Identity
-        otherPlayer.name = data.name; otherPlayer.skin = data.skin;
-        document.getElementById('opp-name-label').innerText = otherPlayer.name || 'Enemy';
-        
-        if(data.spawnSpell) projectiles.push({ x: data.spellX, y: data.spellY, vx: data.spellVX, w: 90, h: 55, life: 100, facing: data.facing, isFromOpp: true, skin: data.skin });
+        otherPlayer.isFocus = data.isFocus; otherPlayer.vx = data.vx;
+        if(data.spawnSpell) projectiles.push({ x: data.spellX, y: data.spellY, vx: data.spellVX, w: 90, h: 55, life: 100, facing: data.facing, isFromOpp: true, skin: otherPlayer.skin });
     });
 
     conn.on('close', () => { if (!gameOver) { alert("Opponent disconnected."); location.reload(); } });
@@ -276,18 +368,17 @@ function setupDataHandlers() {
 function syncData() {
     if(conn && conn.open) {
         conn.send({
-            name: player.name, skin: player.skin, // Sync Identity
             x: player.x, y: player.y, hp: player.hp, facing: player.facing, 
             isDash: player.isDash, attackT: player.attackT, attackD: player.attackD,
-            isFocus: player.isFocus, focusT: player.focusT, vx: player.vx,
+            isFocus: player.isFocus, vx: player.vx,
             spawnSpell: localSpawnSpell, spellX: player.facing === 1 ? player.x + player.w : player.x - 90, spellY: player.y - 25, spellVX: player.facing * 18
         });
         localSpawnSpell = false; 
     }
 }
 
-// ================= Game Physics & Logic =================
-let hitStopFrames = 0, screenShake = 0, particles = [], projectiles = [], shockwaves = [];
+// ================= Game Physics & Render =================
+let hitStopFrames = 0, screenShake = 0, particles = [], projectiles = [];
 let localSpawnSpell = false, gameOver = false;
 
 function showWarning(text, duration = 3000) { const w = document.getElementById('warning'); w.innerHTML = text; w.style.display = 'block'; setTimeout(() => w.style.display = 'none', duration); }
@@ -300,7 +391,6 @@ function checkRectOverlap(r1, r2) { return r1 && r2 && r1.x < r2.x + r2.w && r1.
 const player = {
     x: 200, y: 500, w: 30, h: 45, vx: 0, vy: 0, speed: 7, jumpPower: -14, gravity: 0.7, facing: 1, hp: 25, maxHp: 25, soul: 0,
     isGrounded: false, canDJ: true, invincible: 0, isDash: false, dashD: 0, dashC: 0, attackT: 0, attackD: 'fw', isFocus: false, focusT: 0,
-    name: 'Knight', skin: 'original',
 
     update() {
         if(this.hp <= 0 || gameOver) return;
@@ -314,21 +404,11 @@ const player = {
         if(!this.isDash && !this.isFocus) {
             if(keys.a) { this.vx = -this.speed; this.facing = -1; } else if(keys.d) { this.vx = this.speed; this.facing = 1; } else { this.vx = 0; }
             if(jp && this.isGrounded) { this.vy = this.jumpPower; this.isGrounded = false; } else if(jp && this.canDJ) { this.vy = this.jumpPower * 0.85; this.canDJ = false; }
-
-            if(sp && this.soul >= 33) {
-                this.soul -= 33; localSpawnSpell = true; this.vx = this.facing * -5;
-                projectiles.push({ x: this.facing===1?this.x+this.w:this.x-90, y:this.y-25, vx: this.facing * 18, w: 90, h: 55, life: 100, facing: this.facing, isFromOpp: false, skin: this.skin });
-            }
-
+            if(sp && this.soul >= 33) { this.soul -= 33; localSpawnSpell = true; this.vx = this.facing * -5; projectiles.push({ x: this.facing===1?this.x+this.w:this.x-90, y:this.y-25, vx: this.facing * 18, w: 90, h: 55, life: 100, facing: this.facing, isFromOpp: false, skin: this.skin }); }
             if(ap && this.attackT <= 0) {
                 this.attackT = 16; this.attackD = keys.w ? 'up' : (keys.s && !this.isGrounded ? 'down' : 'fw');
-                let ab = { w: 85, h: 80 };
-                if(this.attackD === 'up'){ ab.x=this.x-27; ab.y=this.y-70; } else if(this.attackD === 'down'){ ab.x=this.x-27; ab.y=this.y+this.h-10; } else { ab.x = this.facing === 1 ? this.x + this.w : this.x - ab.w; ab.y = this.y - 20; }
-
-                if(checkRectOverlap(ab, otherPlayer)) {
-                    spawnParticles(otherPlayer.x+15, otherPlayer.y+20, '#fff', 15, 8); this.soul = Math.min(99, this.soul + 11); hitStopFrames = 4; screenShake = 10;
-                    if(this.attackD === 'down') { this.vy = -13; this.canDJ = true; } else if(this.attackD === 'up') { this.vy += 2; } else { this.vx = this.facing * -6; }
-                }
+                let ab = { w: 85, h: 80 }; if(this.attackD === 'up'){ ab.x=this.x-27; ab.y=this.y-70; } else if(this.attackD === 'down'){ ab.x=this.x-27; ab.y=this.y+this.h-10; } else { ab.x = this.facing === 1 ? this.x + this.w : this.x - ab.w; ab.y = this.y - 20; }
+                if(checkRectOverlap(ab, otherPlayer)) { spawnParticles(otherPlayer.x+15, otherPlayer.y+20, '#fff', 15, 8); this.soul = Math.min(99, this.soul + 11); hitStopFrames = 4; screenShake = 10; if(this.attackD === 'down') { this.vy = -13; this.canDJ = true; } else if(this.attackD === 'up') { this.vy += 2; } else { this.vx = this.facing * -6; } }
             }
         }
 
@@ -338,22 +418,13 @@ const player = {
         this.x += this.vx; if(this.x < map.walls[0].x + map.walls[0].w) this.x = map.walls[0].x + map.walls[0].w; if(this.x + this.w > map.walls[1].x) this.x = map.walls[1].x - this.w;
         this.y += this.vy; this.isGrounded = false;
 
-        if (this.vy >= 0 && !keys.s) { 
-            map.platforms.forEach(plat => {
-                let prevY = this.y - this.vy;
-                if (prevY + this.h <= plat.y + 1 && this.y + this.h >= plat.y) {
-                    if (this.x + this.w > plat.x && this.x < plat.x + plat.w) { this.y = plat.y - this.h; this.vy = 0; this.isGrounded = true; this.canDJ = true; }
-                }
-            });
-        }
+        if (this.vy >= 0 && !keys.s) { map.platforms.forEach(plat => { let prevY = this.y - this.vy; if (prevY + this.h <= plat.y + 1 && this.y + this.h >= plat.y) { if (this.x + this.w > plat.x && this.x < plat.x + plat.w) { this.y = plat.y - this.h; this.vy = 0; this.isGrounded = true; this.canDJ = true; } } }); }
         if(this.y + this.h >= map.floor) { this.y = map.floor - this.h; this.vy = 0; this.isGrounded = true; this.canDJ = true; }
         
         if(otherPlayer.attackT > 8 && this.invincible <= 0) {
-            let oppAb = { w: 85, h: 80 };
-            if(otherPlayer.attackD === 'up'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y-70; } else if(otherPlayer.attackD === 'down'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y+otherPlayer.h-10; } else { oppAb.x = otherPlayer.facing === 1 ? otherPlayer.x + 30 : otherPlayer.x - 85; oppAb.y = otherPlayer.y - 20; }
+            let oppAb = { w: 85, h: 80 }; if(otherPlayer.attackD === 'up'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y-70; } else if(otherPlayer.attackD === 'down'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y+otherPlayer.h-10; } else { oppAb.x = otherPlayer.facing === 1 ? otherPlayer.x + 30 : otherPlayer.x - 85; oppAb.y = otherPlayer.y - 20; }
             if(checkRectOverlap(this, oppAb)) { this.takeDamage(1, otherPlayer.x); }
         }
-
         if(this.invincible > 0) this.invincible--; if(this.attackT > 0) this.attackT--; if(this.dashC > 0) this.dashC--;
         
         document.getElementById('player-hp').innerText = this.hp; document.getElementById('hp-bar').style.width = (this.hp/this.maxHp*100) + '%';
@@ -365,35 +436,26 @@ const player = {
         this.hp -= dmg; this.invincible = 40; screenShake = 15; this.isFocus = false;
         if(sourceX !== undefined) this.vx = this.x > sourceX ? 12 : -12; this.vy = -8;
         spawnParticles(this.x+15, this.y+20, '#ff3333', 20, 10);
-        if(this.hp <= 0 && !gameOver) { 
-            showWarning("<b style='color:#ff3333'>YOU DIED</b><br><span style='font-size:20px; color:#aaa'>Returning to lobby...</span>", 3000); 
-            gameOver = true; setTimeout(() => location.reload(), 3000);
-        }
+        if(this.hp <= 0 && !gameOver) { showWarning("<b style='color:#ff3333'>YOU DIED</b><br><span style='font-size:20px; color:#aaa'>Returning to lobby...</span>", 3000); gameOver = true; setTimeout(() => location.reload(), 3000); }
     },
 
     draw(isMe) {
         if(this.invincible > 0 && Math.floor(Date.now()/100)%2===0 && !this.isDash) return;
-        
         let colors = getSkinColors(this.skin, this.isDash);
 
-        // Nameplate
-        ctx.fillStyle = isMe ? '#00e5ff' : '#ff3333';
-        ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center';
-        ctx.fillText(this.name || 'Unknown', this.x + 15, this.y - 15);
+        if(this.isFocus && this.focusT > 0) {
+            let p = this.focusT / 60; let r = 80 - p * 60; ctx.save(); ctx.translate(this.x+15, this.y+22); ctx.rotate(p * Math.PI * 4);
+            ctx.strokeStyle = `rgba(255,255,255,${1-p})`; ctx.lineWidth = 2; for(let i=0; i<4; i++) { ctx.beginPath(); ctx.arc(0, 0, r, i*Math.PI/2, i*Math.PI/2 + Math.PI/4); ctx.stroke(); } ctx.restore();
+            ctx.fillStyle = `rgba(255,255,255,${p*0.8})`; ctx.beginPath(); ctx.arc(this.x+15, this.y+22, 25, 0, Math.PI*2); ctx.fill();
+        }
 
-        // Body
-        ctx.fillStyle = colors.body;
-        ctx.beginPath(); ctx.arc(this.x+15, this.y+12, 14, 0, Math.PI*2); ctx.fill();
-        
-        // Cloak
+        ctx.fillStyle = colors.body; ctx.beginPath(); ctx.arc(this.x+15, this.y+12, 14, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = colors.cloak;
-        let safeVx = this.vx || 0;
-        ctx.beginPath(); ctx.moveTo(this.x+5, this.y+20); ctx.lineTo(this.x+25, this.y+20); ctx.lineTo(this.x+25-safeVx*0.5, this.y+this.h); ctx.lineTo(this.x+5-safeVx*0.5, this.y+this.h); ctx.fill();
+        let safeVx = this.vx || 0; ctx.beginPath(); ctx.moveTo(this.x+5, this.y+20); ctx.lineTo(this.x+25, this.y+20); ctx.lineTo(this.x+25-safeVx*0.5, this.y+this.h); ctx.lineTo(this.x+5-safeVx*0.5, this.y+this.h); ctx.fill();
 
-        // Sword Slashes
         if(this.attackT > 8) {
             ctx.save(); ctx.translate(this.x+15, this.y+22); if(this.facing === -1 && this.attackD === 'fw') ctx.scale(-1, 1);
-            ctx.shadowColor = isMe ? '#fff' : '#ff3333'; ctx.shadowBlur = 15; ctx.fillStyle = isMe ? '#fff' : '#ff3333';
+            ctx.shadowColor = colors.spell; ctx.shadowBlur = 15; ctx.fillStyle = colors.spell;
             ctx.beginPath();
             if(this.attackD === 'up') { ctx.arc(0, 0, 60, Math.PI, Math.PI*2); ctx.arc(0, -10, 45, Math.PI*2, Math.PI, true); } 
             else if (this.attackD === 'down') { ctx.arc(0, 0, 60, 0, Math.PI); ctx.arc(0, 10, 45, Math.PI, 0, true); } 
@@ -403,7 +465,7 @@ const player = {
     }
 };
 
-const otherPlayer = { x: 1000, y: 500, w: 30, h: 45, hp: 25, facing: -1, isDash: false, attackT: 0, attackD: 'fw', isFocus: false, focusT: 0, vx: 0, name: 'Enemy', skin: 'original' };
+const otherPlayer = { x: 1000, y: 500, w: 30, h: 45, hp: 25, facing: -1, isDash: false, attackT: 0, attackD: 'fw', isFocus: false, focusT: 0, vx: 0, name: 'Enemy', skin: 'original', avatar: '' };
 
 function update() {
     if(!gameStarted) return;
@@ -414,9 +476,11 @@ function update() {
         showWarning("<b style='color:#00e5ff'>VICTORY!</b><br><span style='font-size:20px; color:#aaa'>+1 Win Recorded!</span>", 3000);
         gameOver = true; 
         
-        // Incremet Win Leaderboard
-        winCount++;
-        localStorage.setItem('hk_pvp_wins', winCount);
+        // Handle Leaderboard Record
+        winCount++; localStorage.setItem('hk_pvp_wins', winCount);
+        matchHistory.push({ name: otherPlayer.name, skin: otherPlayer.skin, avatar: otherPlayer.avatar, date: new Date().toLocaleString() });
+        if(matchHistory.length > 20) matchHistory.shift(); // Keep max 20 history
+        localStorage.setItem('hk_pvp_history', JSON.stringify(matchHistory));
         
         setTimeout(() => location.reload(), 3000);
     }
