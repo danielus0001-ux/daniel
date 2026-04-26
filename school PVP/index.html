@@ -12,8 +12,9 @@
         #lobby { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 10, 20, 0.95); padding: 30px; border: 2px solid #00e5ff; border-radius: 10px; z-index: 100; text-align: center; box-shadow: 0 0 30px rgba(0,229,255,0.2); width: 450px; }
         #lobby h2 { color: #00e5ff; text-shadow: 0 0 10px #00e5ff; margin-top: 0; letter-spacing: 2px;}
         
-        .server-list { margin-top: 20px; text-align: left; background: #000; border: 1px solid #444; border-radius: 5px; padding: 10px; height: 250px; overflow-y: auto; }
-        .server-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px dashed #333; }
+        .server-list { margin-top: 20px; text-align: left; background: #000; border: 1px solid #444; border-radius: 5px; padding: 10px; height: 320px; overflow-y: auto; }
+        .server-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px dashed #333; transition: background 0.2s;}
+        .server-row:hover { background: rgba(0, 229, 255, 0.05); }
         .server-row:last-child { border-bottom: none; }
         .server-name { font-size: 16px; font-weight: bold; color: #fff; }
         .server-actions button { padding: 8px 15px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 12px; margin-left: 5px; border-radius: 3px; }
@@ -22,7 +23,7 @@
         .btn-join { background: #ff3333; color: #fff; }
         .btn-join:hover { background: #fff; color: #ff3333; box-shadow: 0 0 10px #ff3333; }
         
-        #conn-status { font-size: 14px; color: #aaa; margin-top: 15px; height: 20px; }
+        #conn-status { font-size: 14px; color: #aaa; margin-top: 15px; height: 20px; font-weight: bold;}
 
         /* Game UI */
         #ui { position: absolute; top: 20px; left: 20px; text-shadow: 2px 2px 2px #000; z-index: 10; pointer-events: none; display: none;}
@@ -36,9 +37,8 @@
         b.highlight { color: #00e5ff; } 
         b.dash { color: #fff; text-shadow: 0 0 8px #fff; border-bottom: 1px dotted #fff; }
         
-        /* Custom Scrollbar for server list */
         ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-track { background: #111; border-radius: 4px; }
         ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #00e5ff; }
     </style>
@@ -49,41 +49,18 @@
         <h2>PVP Arena Server List</h2>
         
         <div class="server-list">
-            <div class="server-row">
-                <div class="server-name">Arena 1: The Crossroads</div>
-                <div class="server-actions">
-                    <button class="btn-host" onclick="initMultiplayer('host', 'arena1')">Host</button>
-                    <button class="btn-join" onclick="initMultiplayer('join', 'arena1')">Join</button>
-                </div>
-            </div>
-            <div class="server-row">
-                <div class="server-name">Arena 2: Greenpath</div>
-                <div class="server-actions">
-                    <button class="btn-host" onclick="initMultiplayer('host', 'arena2')">Host</button>
-                    <button class="btn-join" onclick="initMultiplayer('join', 'arena2')">Join</button>
-                </div>
-            </div>
-            <div class="server-row">
-                <div class="server-name">Arena 3: City of Tears</div>
-                <div class="server-actions">
-                    <button class="btn-host" onclick="initMultiplayer('host', 'arena3')">Host</button>
-                    <button class="btn-join" onclick="initMultiplayer('join', 'arena3')">Join</button>
-                </div>
-            </div>
-            <div class="server-row">
-                <div class="server-name">Arena 4: Crystal Peak</div>
-                <div class="server-actions">
-                    <button class="btn-host" onclick="initMultiplayer('host', 'arena4')">Host</button>
-                    <button class="btn-join" onclick="initMultiplayer('join', 'arena4')">Join</button>
-                </div>
-            </div>
-            <div class="server-row">
-                <div class="server-name">Arena 5: The Abyss</div>
-                <div class="server-actions">
-                    <button class="btn-host" onclick="initMultiplayer('host', 'arena5')">Host</button>
-                    <button class="btn-join" onclick="initMultiplayer('join', 'arena5')">Join</button>
-                </div>
-            </div>
+            <div class="server-row"><div class="server-name">Arena 1: The Crossroads (Flat)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena1')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena1')">Join</button></div></div>
+            <div class="server-row"><div class="server-name">Arena 2: Greenpath (Platforms)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena2')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena2')">Join</button></div></div>
+            <div class="server-row"><div class="server-name">Arena 3: City of Tears (High)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena3')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena3')">Join</button></div></div>
+            <div class="server-row"><div class="server-name">Arena 4: Crystal Peak (Stairs)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena4')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena4')">Join</button></div></div>
+            <div class="server-row"><div class="server-name">Arena 5: The Abyss (Flat)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena5')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena5')">Join</button></div></div>
+            <div class="server-row"><div class="server-name">Arena 6: Deepnest (Platforms)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena6')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena6')">Join</button></div></div>
+            <div class="server-row"><div class="server-name">Arena 7: Kingdom's Edge (High)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena7')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena7')">Join</button></div></div>
+            <div class="server-row"><div class="server-name">Arena 8: Resting Grounds (Stairs)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena8')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena8')">Join</button></div></div>
+            <div class="server-row"><div class="server-name">Arena 9: Queen's Gardens (Flat)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena9')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena9')">Join</button></div></div>
+            <div class="server-row"><div class="server-name">Arena 10: White Palace (Platforms)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena10')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena10')">Join</button></div></div>
+            <div class="server-row"><div class="server-name">Arena 11: Fog Canyon (High)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena11')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena11')">Join</button></div></div>
+            <div class="server-row"><div class="server-name">Arena 12: Dirtmouth (Stairs)</div><div class="server-actions"><button class="btn-host" onclick="initMultiplayer('host', 'arena12')">Host</button><button class="btn-join" onclick="initMultiplayer('join', 'arena12')">Join</button></div></div>
         </div>
 
         <div id="conn-status">Select an Arena to play.</div>
@@ -100,7 +77,8 @@
         <div class="instruction">
             [A/D] Move | [W/Space] Jump | <b class="dash">[L] Dash</b><br>
             [J] Slash | [W+J] Up Slash | [S+J] Down Slash<br>
-            <b class="highlight">[K] Spell</b> | <b>[Hold F] Heal</b>
+            <b class="highlight">[K] Spell</b> | <b>[Hold F] Heal</b><br>
+            <span style="color:#666">[Hold S] Drop down platforms</span>
         </div>
     </div>
 
@@ -119,15 +97,35 @@ let peer, conn;
 let isHost = false;
 let gameStarted = false;
 
-function initMultiplayer(role, arenaId) {
-    // Disable buttons to prevent spam clicks
-    document.querySelectorAll('.server-actions button').forEach(btn => btn.disabled = true);
+// Map System
+const map = { floor: 650, walls: [{x: 50, y:-500, w: 20, h:1500}, {x: 1400, y:-500, w: 20, h:1500}], platforms: [], themeColor: '#11151c', platColor: '#444' };
+
+function loadMap(arenaId) {
+    let idNum = parseInt(arenaId.replace('arena', ''));
+    let type = idNum % 4; // 1: Flat, 2: Platforms, 3: High, 0: Stairs
+    map.platforms = [];
     
+    if(type === 1) { // Flat
+        map.themeColor = '#11151c';
+    } else if (type === 2) { // Double Platforms
+        map.platforms = [{x: 250, y: 500, w: 250, h: 20}, {x: 950, y: 500, w: 250, h: 20}];
+        map.themeColor = '#0a1a11'; map.platColor = '#1e3b26';
+    } else if (type === 3) { // Central High
+        map.platforms = [{x: 600, y: 400, w: 250, h: 20}, {x: 200, y: 520, w: 200, h: 20}, {x: 1050, y: 520, w: 200, h: 20}];
+        map.themeColor = '#10152b'; map.platColor = '#2a3b66';
+    } else if (type === 0) { // Staggered
+        map.platforms = [{x: 300, y: 520, w: 200, h: 20}, {x: 650, y: 420, w: 200, h: 20}, {x: 1000, y: 520, w: 200, h: 20}];
+        map.themeColor = '#2b102b'; map.platColor = '#5e2a5e';
+    }
+}
+
+function initMultiplayer(role, arenaId) {
+    document.querySelectorAll('.server-actions button').forEach(btn => btn.disabled = true);
     const statusEl = document.getElementById('conn-status');
     statusEl.innerText = "Connecting to global relay servers...";
 
-    // Use a fixed prefix so your game arenas don't collide with other games online
-    const globalId = 'nanshan-pvp-v2-' + arenaId; 
+    loadMap(arenaId); // Load the specific arena map
+    const globalId = 'nanshan-pvp-v3-' + arenaId; 
     
     if(peer) peer.destroy();
 
@@ -137,21 +135,9 @@ function initMultiplayer(role, arenaId) {
             'iceServers': [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun.cloudflare.com:3478' },
-                {
-                    urls: 'turn:openrelay.metered.ca:80',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turn:openrelay.metered.ca:443',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                }
+                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
             ]
         }
     });
@@ -173,59 +159,46 @@ function initMultiplayer(role, arenaId) {
             setTimeout(() => c.close(), 500);
             return;
         }
-        conn = c; 
-        setupDataHandlers();
+        conn = c; setupDataHandlers();
     });
 
     peer.on('error', err => {
         console.error("PeerJS Error:", err);
         document.querySelectorAll('.server-actions button').forEach(btn => btn.disabled = false);
-        
-        if(err.type === 'peer-unavailable') {
-            statusEl.innerText = "Error: Nobody is hosting this Arena yet. Click 'Host' to start one!";
-            statusEl.style.color = "#ff3333";
-        } else if (err.type === 'unavailable-id') {
-            statusEl.innerText = "Error: This Arena is already hosted! Click 'Join' instead.";
-            statusEl.style.color = "#ff3333";
-        } else {
-            statusEl.innerText = "Connection failed: " + err.type;
-            statusEl.style.color = "#ff3333";
-        }
+        if(err.type === 'peer-unavailable') { statusEl.innerText = "Error: Nobody is hosting this Arena yet."; statusEl.style.color = "#ff3333"; } 
+        else if (err.type === 'unavailable-id') { statusEl.innerText = "Error: This Arena is already hosted! Click 'Join'."; statusEl.style.color = "#ff3333"; } 
+        else { statusEl.innerText = "Connection failed: " + err.type; statusEl.style.color = "#ff3333"; }
     });
 }
 
-function connectToHost(hostId) {
-    conn = peer.connect(hostId, { reliable: true });
-    setupDataHandlers();
-}
+function connectToHost(hostId) { conn = peer.connect(hostId, { reliable: true }); setupDataHandlers(); }
 
 function setupDataHandlers() {
     conn.on('open', () => {
         document.getElementById('lobby').style.display = 'none';
         document.getElementById('ui').style.display = 'block';
         gameStarted = true;
-        if(isHost) { player.x = 200; player.facing = 1; } 
-        else { player.x = 1200; player.facing = -1; }
+        // Drop them from the sky to land safely on any map layout
+        if(isHost) { player.x = 200; player.y = 100; player.facing = 1; } 
+        else { player.x = 1200; player.y = 100; player.facing = -1; }
         
         showWarning("<b style='color:#00e5ff'>FIGHT!</b>", 3000);
     });
 
     conn.on('data', (data) => {
         if(data.type === 'error') { alert(data.msg); location.reload(); return; }
-        
         otherPlayer.x = data.x; otherPlayer.y = data.y; otherPlayer.hp = data.hp;
         otherPlayer.facing = data.facing; otherPlayer.isDash = data.isDash;
         otherPlayer.attackT = data.attackT; otherPlayer.attackD = data.attackD;
         otherPlayer.isFocus = data.isFocus; otherPlayer.focusT = data.focusT;
+        // We now receive velocity to correctly draw the enemy body leaning
+        otherPlayer.vx = data.vx;
         
         if(data.spawnSpell) projectiles.push({ x: data.spellX, y: data.spellY, vx: data.spellVX, w: 90, h: 55, life: 100, facing: data.facing, isFromOpp: true });
     });
 
     conn.on('close', () => {
-        if (!gameOver) {
-            alert("Opponent disconnected. Returning to Lobby.");
-            location.reload();
-        }
+        if (!gameOver) { alert("Opponent disconnected. Returning to Lobby."); location.reload(); }
     });
 }
 
@@ -234,9 +207,8 @@ function syncData() {
         conn.send({
             x: player.x, y: player.y, hp: player.hp, facing: player.facing, 
             isDash: player.isDash, attackT: player.attackT, attackD: player.attackD,
-            isFocus: player.isFocus, focusT: player.focusT, spawnSpell: localSpawnSpell,
-            spellX: player.facing === 1 ? player.x + player.w : player.x - 90,
-            spellY: player.y - 25, spellVX: player.facing * 18
+            isFocus: player.isFocus, focusT: player.focusT, vx: player.vx, // Send VX for body drawing!
+            spawnSpell: localSpawnSpell, spellX: player.facing === 1 ? player.x + player.w : player.x - 90, spellY: player.y - 25, spellVX: player.facing * 18
         });
         localSpawnSpell = false; 
     }
@@ -245,12 +217,9 @@ function syncData() {
 // ================= Game Physics & Logic =================
 let hitStopFrames = 0, screenShake = 0, particles = [], projectiles = [], shockwaves = [];
 let localSpawnSpell = false, gameOver = false;
-const map = { floor: 650, walls: [{x: 50, y:-500, w: 20, h:1500}, {x: 1400, y:-500, w: 20, h:1500}] };
 
 function showWarning(text, duration = 3000) { 
-    const w = document.getElementById('warning'); 
-    w.innerHTML = text; w.style.display = 'block'; 
-    setTimeout(() => w.style.display = 'none', duration); 
+    const w = document.getElementById('warning'); w.innerHTML = text; w.style.display = 'block'; setTimeout(() => w.style.display = 'none', duration); 
 }
 
 window.addEventListener('keydown', e => { let k = e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k]=true; if(k===' ') keys.space=true; });
@@ -283,12 +252,8 @@ const player = {
 
             if(ap && this.attackT <= 0) {
                 this.attackT = 16; this.attackD = keys.w ? 'up' : (keys.s && !this.isGrounded ? 'down' : 'fw');
-                
-                // Enlarge Hitbox (85x80)
                 let ab = { w: 85, h: 80 };
-                if(this.attackD === 'up'){ ab.x=this.x-27; ab.y=this.y-70; } 
-                else if(this.attackD === 'down'){ ab.x=this.x-27; ab.y=this.y+this.h-10; } 
-                else { ab.x = this.facing === 1 ? this.x + this.w : this.x - ab.w; ab.y = this.y - 20; }
+                if(this.attackD === 'up'){ ab.x=this.x-27; ab.y=this.y-70; } else if(this.attackD === 'down'){ ab.x=this.x-27; ab.y=this.y+this.h-10; } else { ab.x = this.facing === 1 ? this.x + this.w : this.x - ab.w; ab.y = this.y - 20; }
 
                 if(checkRectOverlap(ab, otherPlayer)) {
                     spawnParticles(otherPlayer.x+15, otherPlayer.y+20, '#fff', 15, 8); this.soul = Math.min(99, this.soul + 11); hitStopFrames = 4; screenShake = 10;
@@ -300,16 +265,30 @@ const player = {
         if(dp && this.dashC <= 0 && !this.isFocus) { this.isDash = true; this.dashD = 14; this.dashC = 45; this.vy = 0; this.invincible = 16;}
         if(this.isDash) { this.vx = this.facing * 20; this.dashD--; if(this.dashD<=0) this.isDash=false; } else { this.vy += this.gravity; }
 
-        this.x += this.vx; this.y += this.vy;
+        this.x += this.vx; 
         if(this.x < map.walls[0].x + map.walls[0].w) this.x = map.walls[0].x + map.walls[0].w;
         if(this.x + this.w > map.walls[1].x) this.x = map.walls[1].x - this.w;
+        
+        this.y += this.vy;
+        this.isGrounded = false;
+
+        // Platform One-Way Collision
+        if (this.vy >= 0 && !keys.s) { // If falling down and NOT holding 'S'
+            map.platforms.forEach(plat => {
+                let prevY = this.y - this.vy;
+                if (prevY + this.h <= plat.y + 1 && this.y + this.h >= plat.y) {
+                    if (this.x + this.w > plat.x && this.x < plat.x + plat.w) {
+                        this.y = plat.y - this.h; this.vy = 0; this.isGrounded = true; this.canDJ = true;
+                    }
+                }
+            });
+        }
+
         if(this.y + this.h >= map.floor) { this.y = map.floor - this.h; this.vy = 0; this.isGrounded = true; this.canDJ = true; }
         
         if(otherPlayer.attackT > 8 && this.invincible <= 0) {
             let oppAb = { w: 85, h: 80 };
-            if(otherPlayer.attackD === 'up'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y-70; } 
-            else if(otherPlayer.attackD === 'down'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y+otherPlayer.h-10; } 
-            else { oppAb.x = otherPlayer.facing === 1 ? otherPlayer.x + 30 : otherPlayer.x - 85; oppAb.y = otherPlayer.y - 20; }
+            if(otherPlayer.attackD === 'up'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y-70; } else if(otherPlayer.attackD === 'down'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y+otherPlayer.h-10; } else { oppAb.x = otherPlayer.facing === 1 ? otherPlayer.x + 30 : otherPlayer.x - 85; oppAb.y = otherPlayer.y - 20; }
             if(checkRectOverlap(this, oppAb)) { this.takeDamage(1, otherPlayer.x); }
         }
 
@@ -326,9 +305,7 @@ const player = {
         spawnParticles(this.x+15, this.y+20, '#ff3333', 20, 10);
         if(this.hp <= 0 && !gameOver) { 
             showWarning("<b style='color:#ff3333'>YOU DIED</b><br><span style='font-size:20px; color:#aaa'>Returning to lobby...</span>", 3000); 
-            gameOver = true; 
-            // 返回主菜单
-            setTimeout(() => location.reload(), 3000);
+            gameOver = true; setTimeout(() => location.reload(), 3000);
         }
     },
 
@@ -341,13 +318,15 @@ const player = {
             ctx.fillStyle = isMe ? `rgba(255,255,255,${p*0.8})` : `rgba(255,51,51,${p*0.8})`; ctx.beginPath(); ctx.arc(this.x+15, this.y+22, 25, 0, Math.PI*2); ctx.fill();
         }
 
-        // Distinct Opponent Colors
         ctx.fillStyle = isMe ? (this.isDash ? '#000' : '#fff') : '#ff3333';
         ctx.beginPath(); ctx.arc(this.x+15, this.y+12, 14, 0, Math.PI*2); ctx.fill();
         
         ctx.fillStyle = this.isDash ? '#000' : (isMe ? '#222' : '#cc2222');
         if(this.isDash) { ctx.shadowColor = '#555'; ctx.shadowBlur = 10; }
-        ctx.beginPath(); ctx.moveTo(this.x+5, this.y+20); ctx.lineTo(this.x+25, this.y+20); ctx.lineTo(this.x+25-this.vx*0.5, this.y+this.h); ctx.lineTo(this.x+5-this.vx*0.5, this.y+this.h); ctx.fill(); ctx.shadowBlur = 0;
+        
+        // BUG FIXED: We now safely fall back to 0 if this.vx is somehow undefined, preventing NaN body errors
+        let safeVx = this.vx || 0;
+        ctx.beginPath(); ctx.moveTo(this.x+5, this.y+20); ctx.lineTo(this.x+25, this.y+20); ctx.lineTo(this.x+25-safeVx*0.5, this.y+this.h); ctx.lineTo(this.x+5-safeVx*0.5, this.y+this.h); ctx.fill(); ctx.shadowBlur = 0;
 
         if(this.attackT > 8) {
             ctx.save(); ctx.translate(this.x+15, this.y+22); if(this.facing === -1 && this.attackD === 'fw') ctx.scale(-1, 1);
@@ -361,7 +340,7 @@ const player = {
     }
 };
 
-const otherPlayer = { x: 1000, y: 500, w: 30, h: 45, hp: 25, facing: -1, isDash: false, attackT: 0, attackD: 'fw', isFocus: false, focusT: 0 };
+const otherPlayer = { x: 1000, y: 500, w: 30, h: 45, hp: 25, facing: -1, isDash: false, attackT: 0, attackD: 'fw', isFocus: false, focusT: 0, vx: 0 };
 
 function update() {
     if(!gameStarted) return;
@@ -370,15 +349,24 @@ function update() {
 
     if(otherPlayer.hp <= 0 && !gameOver) {
         showWarning("<b style='color:#00e5ff'>VICTORY!</b><br><span style='font-size:20px; color:#aaa'>Returning to lobby...</span>", 3000);
-        gameOver = true;
-        // 返回主菜单
-        setTimeout(() => location.reload(), 3000);
+        gameOver = true; setTimeout(() => location.reload(), 3000);
     }
 
     for(let i = projectiles.length - 1; i >= 0; i--) {
         let p = projectiles[i]; p.x += p.vx; p.life--;
-        if(p.isFromOpp && checkRectOverlap(p, player) && player.invincible <= 0 && !player.isDash) { player.takeDamage(2, p.x); projectiles.splice(i, 1);
-        } else if(p.life <= 0) projectiles.splice(i, 1);
+        
+        let hitMe = p.isFromOpp && checkRectOverlap(p, player) && player.invincible <= 0 && !player.isDash;
+        let hitOpp = !p.isFromOpp && checkRectOverlap(p, otherPlayer); // Visual hit for sender
+
+        if(hitMe) { 
+            player.takeDamage(2, p.x); projectiles.splice(i, 1);
+        } else if (hitOpp) {
+            // BUG FIXED: Visual explosion on the sender's screen so spells don't look like they pass through
+            spawnParticles(otherPlayer.x+15, otherPlayer.y+20, '#fff', 20, 10);
+            hitStopFrames = 3; screenShake = 8; projectiles.splice(i, 1);
+        } else if(p.life <= 0) {
+            projectiles.splice(i, 1);
+        }
     }
     particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.life -= 0.02; if(p.life <= 0) particles.splice(i, 1); });
 
@@ -389,7 +377,15 @@ function draw() {
     ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.save();
     let camX = canvas.width>=1500 ? (canvas.width-1500)/2 : Math.max(canvas.width-1500, Math.min(0, canvas.width/2-player.x)); let camY = canvas.height-730; 
     if(screenShake > 0) { camX+=(Math.random()-0.5)*screenShake; camY+=(Math.random()-0.5)*screenShake; screenShake *= 0.9; }
-    ctx.translate(camX, camY); ctx.fillStyle = '#11151c'; ctx.fillRect(-1000, map.floor, 4000, 1000); ctx.fillStyle = '#11151c'; map.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+    ctx.translate(camX, camY); 
+    
+    // Draw Dynamic Map Background
+    ctx.fillStyle = map.themeColor; ctx.fillRect(-1000, map.floor, 4000, 1000); 
+    ctx.fillStyle = map.themeColor; map.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+    
+    // Draw Dynamic Platforms
+    ctx.fillStyle = map.platColor;
+    map.platforms.forEach(p => { ctx.fillRect(p.x, p.y, p.w, p.h); });
 
     if(gameStarted) { if(otherPlayer.hp > 0) player.draw.call(otherPlayer, false); if(player.hp > 0) player.draw(true); }
 
