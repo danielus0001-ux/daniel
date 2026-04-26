@@ -50,10 +50,10 @@
         .lb-avatar { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #777; object-fit: cover;}
 
         /* Game HUD */
-        #ui { position: absolute; top: 20px; left: 20px; text-shadow: 2px 2px 2px #000; z-index: 10; pointer-events: none; display: none; width: 100%;}
+        #ui { position: absolute; top: 20px; left: 20px; text-shadow: 2px 2px 2px #000; z-index: 10; pointer-events: none; display: none; width: calc(100vw - 40px);}
         .player-hud { display: flex; align-items: center; gap: 15px; margin-bottom: 10px; }
         .hud-avatar { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 10px #000; object-fit: cover; }
-        .bar-bg { width: 200px; height: 14px; background: #222; border: 2px solid #555; margin-top: 5px; }
+        .bar-bg { width: 220px; height: 14px; background: #222; border: 2px solid #555; margin-top: 5px; }
         .hp-fill { height: 100%; background: #eee; transition: width 0.1s; }
         .soul-fill { height: 100%; background: #00e5ff; transition: width 0.2s; box-shadow: 0 0 10px #00e5ff; }
         .instruction { font-size: 14px; color: #aaa; margin-top: 15px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; border: 1px solid #333; line-height: 1.6; display: inline-block;}
@@ -115,11 +115,14 @@
     </div>
 
     <div id="ui">
-        <div style="display:flex; justify-content: space-between; padding-right: 40px;">
+        <div style="display:flex; justify-content: space-between;">
             <div class="player-hud">
                 <img id="ui-my-avatar" class="hud-avatar" src="" style="border-color:#00e5ff;">
                 <div>
-                    <div><span id="my-name-label" style="color:#00e5ff; font-weight:bold; font-size:18px;">You</span></div>
+                    <div style="margin-bottom: 3px;">
+                        <span id="my-name-label" style="color:#00e5ff; font-weight:bold; font-size:18px; margin-right: 8px;">You</span>
+                        <span style="font-size:12px; color:#aaa;">HP: <span id="player-hp">25</span>/25 | Soul: <span id="player-soul">0</span>/99</span>
+                    </div>
                     <div class="bar-bg"><div class="hp-fill" id="hp-bar" style="width: 100%;"></div></div>
                     <div class="bar-bg" style="height:8px; margin-top:2px;"><div class="soul-fill" id="soul-bar" style="width: 0%;"></div></div>
                 </div>
@@ -128,7 +131,10 @@
             <div class="player-hud" style="flex-direction: row-reverse; text-align: right;">
                 <img id="ui-opp-avatar" class="hud-avatar" src="" style="border-color:#ff3333;">
                 <div>
-                    <div><span id="opp-name-label" style="color:#ff3333; font-weight:bold; font-size:18px;">Enemy</span></div>
+                    <div style="margin-bottom: 3px;">
+                        <span style="font-size:12px; color:#aaa; margin-right: 8px;">HP: <span id="opp-hp-val">25</span>/25</span>
+                        <span id="opp-name-label" style="color:#ff3333; font-weight:bold; font-size:18px;">Enemy</span>
+                    </div>
                     <div class="bar-bg"><div class="hp-fill" id="opp-hp-bar" style="width: 100%; background: #ff3333; float:right;"></div></div>
                 </div>
             </div>
