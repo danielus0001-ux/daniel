@@ -127,6 +127,15 @@
 
     <div class="grid-container" id="gameGrid">
 
+        <div class="card-wrapper" onclick="window.open('basketball-stars/index.html', '_blank')">
+            <div class="card-shadow"></div>
+            <div class="card-content">
+                <h3>Basketball Stars</h3>
+                <p data-i18n="tagBasketball">体育 / 竞技</p>
+                <button class="play-btn" data-i18n="playBtn">开始</button>
+            </div>
+        </div>
+
         <div class="card-wrapper" onclick="window.open('school PVP/index.html', '_blank')">
             <div class="card-shadow"></div>
             <div class="card-content">
@@ -220,13 +229,14 @@
     </div>
 
     <script>
-        // 🌐 多语言词典（已加入 School PVP 的翻译）
+        // 🌐 多语言词典（已加入 Basketball Stars 的翻译）
         const i18n = {
             zh: {
                 pageTitle: "PORTAL - 游戏终端",
                 mainTitle: "传送门",
                 searchPlaceholder: "输入游戏名称进行搜索...",
                 playBtn: "开始",
+                tagBasketball: "体育 / 竞技",
                 tagSchoolPvp: "多人对战 / 竞技",
                 tagAmongUs: "社交推理 / 派对",
                 tag2048: "益智 / 数字",
@@ -243,6 +253,7 @@
                 mainTitle: "PORTAL",
                 searchPlaceholder: "Enter game name to search...",
                 playBtn: "PLAY",
+                tagBasketball: "Sports / Competitive",
                 tagSchoolPvp: "Multiplayer / PVP",
                 tagAmongUs: "Social Deduction / Party",
                 tag2048: "Puzzle / Numbers",
@@ -259,6 +270,7 @@
                 mainTitle: "PORTAL",
                 searchPlaceholder: "Introduce el nombre del juego...",
                 playBtn: "JUGAR",
+                tagBasketball: "Deportes / Competitivo",
                 tagSchoolPvp: "Multijugador / JcJ",
                 tagAmongUs: "Deducción Social / Fiesta",
                 tag2048: "Puzle / Números",
