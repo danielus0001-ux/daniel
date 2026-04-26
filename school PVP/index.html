@@ -1,25 +1,25 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>南山传说 PVP</title>
+    <title>Nanshan PVP Arena</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; background: #020205; color: white; font-family: 'Times New Roman', serif; }
         canvas { display: block; margin: 0 auto; box-shadow: inset 0 0 150px rgba(0,0,0,1); cursor: crosshair; }
         
-        /* 联机 UI */
+        /* Lobby UI */
         #lobby { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 10, 20, 0.95); padding: 30px; border: 2px solid #00e5ff; border-radius: 10px; z-index: 100; text-align: center; box-shadow: 0 0 30px rgba(0,229,255,0.2); }
         #lobby h2 { color: #00e5ff; text-shadow: 0 0 10px #00e5ff; margin-top: 0; letter-spacing: 2px;}
         .input-group { margin-bottom: 20px; }
-        input { padding: 12px; width: 220px; border: 1px solid #444; background: #000; color: #00e5ff; text-align: center; font-size: 16px; font-weight: bold;}
+        input { padding: 12px; width: 250px; border: 1px solid #444; background: #000; color: #00e5ff; text-align: center; font-size: 16px; font-weight: bold;}
         input:focus { outline: none; border-color: #00e5ff; }
         button { padding: 12px 24px; background: #00e5ff; border: none; color: #000; font-weight: bold; cursor: pointer; transition: 0.2s; margin: 5px; font-size: 14px;}
         button:hover { background: #fff; box-shadow: 0 0 15px #00e5ff; transform: scale(1.05);}
         #conn-status { font-size: 14px; color: #aaa; margin-top: 15px; height: 20px; }
         #invite-box { display: none; margin-top: 20px; padding: 15px; background: #111; border: 1px dashed #00e5ff; }
 
-        /* 游戏 UI */
+        /* Game UI */
         #ui { position: absolute; top: 20px; left: 20px; text-shadow: 2px 2px 2px #000; z-index: 10; pointer-events: none; display: none;}
         .bar-bg { width: 200px; height: 12px; background: #222; border: 2px solid #555; margin-top: 5px; margin-bottom: 5px; }
         .hp-fill { height: 100%; background: #eee; transition: width 0.1s; }
@@ -35,34 +35,34 @@
 <body>
 
     <div id="lobby">
-        <h2>南山传说 PVP</h2>
+        <h2>Nanshan PVP Arena</h2>
         <div class="input-group">
-            <input type="text" id="roomId" placeholder="输入房间号 (仅限字母数字)" maxlength="16">
+            <input type="text" id="roomId" placeholder="Enter Room ID (Alphanumeric)" maxlength="16">
         </div>
-        <button id="btn-host" onclick="initMultiplayer('host')">创建房间 (房主)</button>
-        <button id="btn-join" onclick="initMultiplayer('join')">加入房间 (挑战者)</button>
+        <button id="btn-host" onclick="initMultiplayer('host')">Create Room (Host)</button>
+        <button id="btn-join" onclick="initMultiplayer('join')">Join Room (Challenger)</button>
         
         <div id="invite-box">
-            <p style="margin:0 0 10px 0; font-size: 14px; color: #00e5ff;">房间已创建！把下面链接发给对手：</p>
-            <input type="text" id="inviteLink" readonly style="width: 250px; font-size: 12px; color: #aaa;">
-            <button onclick="copyInvite()" style="padding: 8px 15px; font-size: 12px;">复制链接</button>
+            <p style="margin:0 0 10px 0; font-size: 14px; color: #00e5ff;">Room created! Share this link with your opponent:</p>
+            <input type="text" id="inviteLink" readonly style="width: 280px; font-size: 12px; color: #aaa;">
+            <button onclick="copyInvite()" style="padding: 8px 15px; font-size: 12px;">Copy Link</button>
         </div>
 
-        <div id="conn-status">等待操作...</div>
+        <div id="conn-status">Waiting for action...</div>
     </div>
 
     <div id="ui">
-        <div>你 (Hubble): <span id="player-hp">25</span> / 25</div>
+        <div>You (Hubble): <span id="player-hp">25</span> / 25</div>
         <div class="bar-bg"><div class="hp-fill" id="hp-bar" style="width: 100%;"></div></div>
-        <div>对手 HP: <span id="opp-hp-val">25</span> / 25</div>
-        <div class="bar-bg"><div class="hp-fill" id="opp-hp-bar" style="width: 100%; background: #c23b22;"></div></div>
-        <div>红温指数 (Soul): <span id="player-soul">0</span> / 99</div>
+        <div>Enemy HP: <span id="opp-hp-val">25</span> / 25</div>
+        <div class="bar-bg"><div class="hp-fill" id="opp-hp-bar" style="width: 100%; background: #ff3333;"></div></div>
+        <div>Soul: <span id="player-soul">0</span> / 99</div>
         <div class="bar-bg"><div class="soul-fill" id="soul-bar" style="width: 0%;"></div></div>
         
         <div class="instruction">
-            [A/D] 移动 | [W/空格] 跳跃 | <b class="dash">[L] 黑冲</b><br>
-            [J] 肘击 | [W+J] 上劈 | [S+J] 下劈<br>
-            <b class="highlight">[K] 白波</b> | <b>[长按 F] 回血</b>
+            [A/D] Move | [W/Space] Jump | <b class="dash">[L] Dash</b><br>
+            [J] Slash | [W+J] Up Slash | [S+J] Down Slash<br>
+            <b class="highlight">[K] Spell</b> | <b>[Hold F] Heal</b>
         </div>
     </div>
 
@@ -70,11 +70,12 @@
     <canvas id="gameCanvas"></canvas>
 
 <script>
+// ================= URL Parsing & UI Init =================
 const urlParams = new URLSearchParams(window.location.search);
 const roomParam = urlParams.get('room');
 if (roomParam) {
     document.getElementById('roomId').value = roomParam;
-    document.getElementById('conn-status').innerText = "检测到邀请链接，请点击 [加入房间]";
+    document.getElementById('conn-status').innerText = "Invite link detected, click [Join Room]";
 }
 
 const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
@@ -83,7 +84,7 @@ function resize() { canvas.width = window.innerWidth; canvas.height = window.inn
 const keys = { w:false, a:false, s:false, d:false, j:false, k:false, l:false, f:false, space:false };
 const prevKeys = { ...keys };
 
-// ================= 网络核心系统 (P2P - 北美优化版) =================
+// ================= WebRTC Networking (STUN + TURN) =================
 let peer, conn;
 let isHost = false;
 let gameStarted = false;
@@ -97,7 +98,7 @@ function initMultiplayer(role) {
     document.getElementById('roomId').value = cleanId;
     
     const statusEl = document.getElementById('conn-status');
-    statusEl.innerText = "正在连接全球信令服务器...";
+    statusEl.innerText = "Connecting to global relay servers...";
     document.getElementById('btn-host').disabled = true;
     document.getElementById('btn-join').disabled = true;
 
@@ -105,15 +106,27 @@ function initMultiplayer(role) {
     
     if(peer) peer.destroy();
 
-    // 针对 Redmond/北美环境优化的 STUN 节点
     peer = new Peer(role === 'host' ? globalId : null, { 
         debug: 2, 
         config: {
             'iceServers': [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun.cloudflare.com:3478' },
-                { urls: 'stun:global.stun.twilio.com:3478' }
+                {
+                    urls: 'turn:openrelay.metered.ca:80',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                }
             ]
         }
     });
@@ -121,21 +134,21 @@ function initMultiplayer(role) {
     peer.on('open', (myId) => {
         if(role === 'host') {
             isHost = true;
-            statusEl.innerText = "房间建好了！等待对手...";
+            statusEl.innerText = "Room created! Waiting for opponent...";
             statusEl.style.color = "#00e5ff";
             
             const inviteUrl = window.location.origin + window.location.pathname + '?room=' + cleanId;
             document.getElementById('inviteLink').value = inviteUrl;
             document.getElementById('invite-box').style.display = 'block';
         } else {
-            statusEl.innerText = "正在尝试闯入房间...";
+            statusEl.innerText = "Attempting to connect to room...";
             connectToHost(globalId);
         }
     });
 
     peer.on('connection', (c) => {
         if(isHost && conn && conn.open) {
-            c.send({ type: 'error', msg: '房间已满！' });
+            c.send({ type: 'error', msg: 'Room is full!' });
             setTimeout(() => c.close(), 500);
             return;
         }
@@ -144,17 +157,17 @@ function initMultiplayer(role) {
     });
 
     peer.on('error', err => {
-        console.error(err);
+        console.error("PeerJS Error:", err);
         document.getElementById('btn-host').disabled = false;
         document.getElementById('btn-join').disabled = false;
         if(err.type === 'peer-unavailable') {
-            statusEl.innerText = "错误：找不到该房间，房主跑路了？";
+            statusEl.innerText = "Error: Room not found. Did the host leave?";
             statusEl.style.color = "#ff3333";
         } else if (err.type === 'unavailable-id') {
-            statusEl.innerText = "错误：房间号已被占用，换一个吧！";
+            statusEl.innerText = "Error: Room ID taken, try another!";
             statusEl.style.color = "#ff3333";
         } else {
-            statusEl.innerText = "连接失败: " + err.type;
+            statusEl.innerText = "Connection failed: " + err.type;
             statusEl.style.color = "#ff3333";
         }
     });
@@ -168,7 +181,7 @@ function connectToHost(hostId) {
 function copyInvite() {
     const link = document.getElementById('inviteLink');
     link.select(); document.execCommand('copy');
-    document.getElementById('conn-status').innerText = "链接已复制！快去摇人！";
+    document.getElementById('conn-status').innerText = "Link copied! Share it with your opponent.";
 }
 
 function setupDataHandlers() {
@@ -179,7 +192,7 @@ function setupDataHandlers() {
         if(isHost) { player.x = 200; player.facing = 1; } 
         else { player.x = 1200; player.facing = -1; }
         
-        showWarning("<b style='color:#00e5ff'>对 决 开 始</b>", 3000);
+        showWarning("<b style='color:#00e5ff'>FIGHT!</b>", 3000);
     });
 
     conn.on('data', (data) => {
@@ -194,8 +207,10 @@ function setupDataHandlers() {
     });
 
     conn.on('close', () => {
-        alert("对手逃跑了 (连接断开)");
-        location.reload();
+        if (!gameOver) {
+            alert("Opponent disconnected.");
+            location.reload();
+        }
     });
 }
 
@@ -212,7 +227,7 @@ function syncData() {
     }
 }
 
-// ================= 游戏核心物理系统 =================
+// ================= Game Physics & Logic =================
 let hitStopFrames = 0, screenShake = 0, particles = [], projectiles = [], shockwaves = [];
 let localSpawnSpell = false, gameOver = false;
 const map = { floor: 650, walls: [{x: 50, y:-500, w: 20, h:1500}, {x: 1400, y:-500, w: 20, h:1500}] };
@@ -253,8 +268,10 @@ const player = {
 
             if(ap && this.attackT <= 0) {
                 this.attackT = 16; this.attackD = keys.w ? 'up' : (keys.s && !this.isGrounded ? 'down' : 'fw');
-                let ab = { w: 75, h: 75 };
-                if(this.attackD === 'up'){ ab.x=this.x-22; ab.y=this.y-65; } else if(this.attackD === 'down'){ ab.x=this.x-22; ab.y=this.y+this.h; } else { ab.x = this.facing === 1 ? this.x + this.w : this.x - ab.w; ab.y = this.y - 15; }
+                let ab = { w: 85, h: 80 };
+                if(this.attackD === 'up'){ ab.x=this.x-27; ab.y=this.y-70; } 
+                else if(this.attackD === 'down'){ ab.x=this.x-27; ab.y=this.y+this.h-10; } 
+                else { ab.x = this.facing === 1 ? this.x + this.w : this.x - ab.w; ab.y = this.y - 20; }
 
                 if(checkRectOverlap(ab, otherPlayer)) {
                     spawnParticles(otherPlayer.x+15, otherPlayer.y+20, '#fff', 15, 8); this.soul = Math.min(99, this.soul + 11); hitStopFrames = 4; screenShake = 10;
@@ -272,8 +289,10 @@ const player = {
         if(this.y + this.h >= map.floor) { this.y = map.floor - this.h; this.vy = 0; this.isGrounded = true; this.canDJ = true; }
         
         if(otherPlayer.attackT > 8 && this.invincible <= 0) {
-            let oppAb = { w: 75, h: 75 };
-            if(otherPlayer.attackD === 'up'){ oppAb.x=otherPlayer.x-22; oppAb.y=otherPlayer.y-65; } else if(otherPlayer.attackD === 'down'){ oppAb.x=otherPlayer.x-22; oppAb.y=otherPlayer.y+otherPlayer.h; } else { oppAb.x = otherPlayer.facing === 1 ? otherPlayer.x + 30 : otherPlayer.x - 75; oppAb.y = otherPlayer.y - 15; }
+            let oppAb = { w: 85, h: 80 };
+            if(otherPlayer.attackD === 'up'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y-70; } 
+            else if(otherPlayer.attackD === 'down'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y+otherPlayer.h-10; } 
+            else { oppAb.x = otherPlayer.facing === 1 ? otherPlayer.x + 30 : otherPlayer.x - 85; oppAb.y = otherPlayer.y - 20; }
             if(checkRectOverlap(this, oppAb)) { this.takeDamage(1, otherPlayer.x); }
         }
 
@@ -287,28 +306,34 @@ const player = {
         if(this.invincible > 0) return;
         this.hp -= dmg; this.invincible = 40; screenShake = 15; this.isFocus = false;
         if(sourceX !== undefined) this.vx = this.x > sourceX ? 12 : -12; this.vy = -8;
-        spawnParticles(this.x+15, this.y+20, '#f00', 20, 10);
-        if(this.hp <= 0) { showWarning("你 挂 了", 9999); gameOver = true; }
+        spawnParticles(this.x+15, this.y+20, '#ff3333', 20, 10);
+        if(this.hp <= 0 && !gameOver) { 
+            showWarning("<b style='color:#ff3333'>YOU DIED</b><br><span style='font-size:20px; color:#aaa'>Returning to lobby...</span>", 3000); 
+            gameOver = true; 
+            setTimeout(() => location.reload(), 3000);
+        }
     },
 
     draw(isMe) {
         if(this.invincible > 0 && Math.floor(Date.now()/100)%2===0 && !this.isDash) return;
         if(this.isFocus && this.focusT > 0) {
             let p = this.focusT / 60; let r = 80 - p * 60; ctx.save(); ctx.translate(this.x+15, this.y+22); ctx.rotate(p * Math.PI * 4);
-            ctx.strokeStyle = `rgba(255,255,255,${1-p})`; ctx.lineWidth = 2;
+            ctx.strokeStyle = isMe ? `rgba(255,255,255,${1-p})` : `rgba(255,51,51,${1-p})`; ctx.lineWidth = 2;
             for(let i=0; i<4; i++) { ctx.beginPath(); ctx.arc(0, 0, r, i*Math.PI/2, i*Math.PI/2 + Math.PI/4); ctx.stroke(); } ctx.restore();
-            ctx.fillStyle = `rgba(255,255,255,${p*0.8})`; ctx.beginPath(); ctx.arc(this.x+15, this.y+22, 25, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = isMe ? `rgba(255,255,255,${p*0.8})` : `rgba(255,51,51,${p*0.8})`; ctx.beginPath(); ctx.arc(this.x+15, this.y+22, 25, 0, Math.PI*2); ctx.fill();
         }
 
-        ctx.fillStyle = isMe ? (this.isDash ? '#000' : '#fff') : '#c23b22';
+        // Distinct Opponent Colors
+        ctx.fillStyle = isMe ? (this.isDash ? '#000' : '#fff') : '#ff3333';
         ctx.beginPath(); ctx.arc(this.x+15, this.y+12, 14, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = this.isDash ? '#000' : '#222';
+        
+        ctx.fillStyle = this.isDash ? '#000' : (isMe ? '#222' : '#cc2222');
         if(this.isDash) { ctx.shadowColor = '#555'; ctx.shadowBlur = 10; }
         ctx.beginPath(); ctx.moveTo(this.x+5, this.y+20); ctx.lineTo(this.x+25, this.y+20); ctx.lineTo(this.x+25-this.vx*0.5, this.y+this.h); ctx.lineTo(this.x+5-this.vx*0.5, this.y+this.h); ctx.fill(); ctx.shadowBlur = 0;
 
         if(this.attackT > 8) {
             ctx.save(); ctx.translate(this.x+15, this.y+22); if(this.facing === -1 && this.attackD === 'fw') ctx.scale(-1, 1);
-            ctx.shadowColor = isMe ? '#fff' : '#c23b22'; ctx.shadowBlur = 15; ctx.fillStyle = isMe ? '#fff' : '#c23b22';
+            ctx.shadowColor = isMe ? '#fff' : '#ff3333'; ctx.shadowBlur = 15; ctx.fillStyle = isMe ? '#fff' : '#ff3333';
             ctx.beginPath();
             if(this.attackD === 'up') { ctx.arc(0, 0, 60, Math.PI, Math.PI*2); ctx.arc(0, -10, 45, Math.PI*2, Math.PI, true); } 
             else if (this.attackD === 'down') { ctx.arc(0, 0, 60, 0, Math.PI); ctx.arc(0, 10, 45, Math.PI, 0, true); } 
@@ -324,6 +349,12 @@ function update() {
     if(!gameStarted) return;
     if(hitStopFrames > 0) { hitStopFrames--; return; }
     player.update(); syncData();
+
+    if(otherPlayer.hp <= 0 && !gameOver) {
+        showWarning("<b style='color:#00e5ff'>VICTORY!</b><br><span style='font-size:20px; color:#aaa'>Returning to lobby...</span>", 3000);
+        gameOver = true;
+        setTimeout(() => location.reload(), 3000);
+    }
 
     for(let i = projectiles.length - 1; i >= 0; i--) {
         let p = projectiles[i]; p.x += p.vx; p.life--;
@@ -345,8 +376,8 @@ function draw() {
 
     projectiles.forEach(p => { 
         ctx.save(); ctx.translate(p.x + p.w/2, p.y + p.h/2); if(p.facing === -1) ctx.scale(-1, 1); 
-        ctx.shadowColor = p.isFromOpp ? '#f00' : '#00e5ff'; ctx.shadowBlur = 20; let pGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, p.w); 
-        pGrad.addColorStop(0, '#fff'); pGrad.addColorStop(0.5, p.isFromOpp ? '#f00' : '#00e5ff'); pGrad.addColorStop(1, 'rgba(0,0,0,0)'); 
+        ctx.shadowColor = p.isFromOpp ? '#ff3333' : '#00e5ff'; ctx.shadowBlur = 20; let pGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, p.w); 
+        pGrad.addColorStop(0, '#fff'); pGrad.addColorStop(0.5, p.isFromOpp ? '#ff3333' : '#00e5ff'); pGrad.addColorStop(1, 'rgba(0,0,0,0)'); 
         ctx.fillStyle = pGrad; ctx.beginPath(); ctx.moveTo(p.w/2, 0); ctx.quadraticCurveTo(p.w/4, p.h/2, -p.w/2, p.h/4); ctx.lineTo(-p.w/1.2, 0); ctx.lineTo(-p.w/2, -p.h/4); ctx.quadraticCurveTo(p.w/4, -p.h/2, p.w/2, 0); ctx.fill(); 
         ctx.restore(); 
     });
