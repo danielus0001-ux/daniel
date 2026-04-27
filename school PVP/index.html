@@ -238,7 +238,7 @@ function initLobbyRadar() {
 }
 function checkRoom(arenaId) {
     return new Promise((resolve) => {
-        let tId = 'nspvp-v9-' + arenaId;
+        let tId = 'nspvp-v11-' + arenaId; // Bumped version
         let timeout = setTimeout(() => { if (probeCallbacks[tId]) { probeCallbacks[tId](0); delete probeCallbacks[tId]; } }, 1500);
         probeCallbacks[tId] = (result) => { clearTimeout(timeout); resolve(result); };
         let c = lobbyPeer.connect(tId, { metadata: { type: 'probe' } });
@@ -262,7 +262,7 @@ initLobbyRadar();
 
 let peer, conn, isHost = false, gameStarted = false;
 let isCoop = false;
-let zombies = []; let coopState = { wave: 1, kills: 0, spawnTimer: 60 };
+let zombies = []; let coopState = { wave: 1, kills: 0, spawnTimer: 60, bossActive: false };
 
 const map = { floor: 650, walls: [{x: 50, y:-500, w: 20, h:1500}, {x: 1400, y:-500, w: 20, h:1500}], platforms: [], themeColor: '#11151c', platColor: '#444' };
 
@@ -286,7 +286,7 @@ function initMultiplayer(role, arenaId) {
     player.avatar = savedAvatar;
 
     if (lobbyPeer) { lobbyPeer.destroy(); lobbyPeer = null; }
-    loadMap(arenaId); const globalId = 'nspvp-v9-' + arenaId; if(peer) peer.destroy();
+    loadMap(arenaId); const globalId = 'nspvp-v11-' + arenaId; if(peer) peer.destroy();
 
     peer = new Peer(role === 'host' ? globalId : null, { config: { 'iceServers': [ { urls: 'stun:stun.l.google.com:19302' } ] } });
     peer.on('open', () => { if(role === 'host') { isHost = true; document.getElementById('conn-status').innerText = `Hosting! Waiting for ally/opponent...`; } else { connectToHost(globalId); } });
@@ -381,7 +381,7 @@ const player = {
         let jp = (keys.w || keys.space) && !(prevKeys.w || prevKeys.space); let ap = keys.j && !prevKeys.j; let sp = keys.k && !prevKeys.k; let dp = keys.l && !prevKeys.l;
         let isKnight = this.charClass === 'knight'; let isMage = this.charClass === 'mage';
         
-        // --- 骑士黑冲冷却速度 0.5 倍，冷却时间从 45 增加至 45 / 0.5 = 90 帧 ---
+        // 骑士黑冲冷却速度调整为正常的 0.5 倍（冷却时间变长，90帧）
         let dashMaxCD = isKnight ? 90 : 45; 
 
         if(keys.f && this.isGrounded && this.hp < this.maxHp && this.soul >= 33 && !this.isDash) {
@@ -452,7 +452,7 @@ const player = {
         }
 
         // Take Damage (Co-op Zombies)
-        if(isCoop && this.invincible <= 0) { zombies.forEach(z => { if (checkRectOverlap(this, z)) { this.takeDamage(1, z.x); } }); }
+        if(isCoop && this.invincible <= 0) { zombies.forEach(z => { if (checkRectOverlap(this, z)) { this.takeDamage(z.isBoss?2:1, z.x); } }); }
 
         if(this.invincible > 0) this.invincible--; if(this.attackT > 0) this.attackT--; if(this.dashC > 0) this.dashC--;
         
@@ -522,19 +522,43 @@ function update() {
     if(!gameStarted) return;
     if(hitStopFrames > 0) { hitStopFrames--; return; }
     
+    // Host AI Update for Zombies & Boss
     if (isHost && isCoop && !gameOver) {
-        coopState.spawnTimer--; let maxZombies = 5 + coopState.wave * 2;
-        if (coopState.spawnTimer <= 0 && zombies.length < maxZombies) {
-            zombies.push({ id: Math.random().toString(), x: Math.random() > 0.5 ? 80 : 1320, y: 100, w: 35, h: 50, hp: 20 + coopState.wave * 10, maxHp: 20 + coopState.wave * 10, vx: 0, vy: 0, facing: 1, isGrounded: false });
-            coopState.spawnTimer = Math.max(60, 150 - coopState.wave * 15);
-            document.getElementById('coop-wave').innerText = coopState.wave; document.getElementById('coop-kills').innerText = coopState.kills;
+        // Trigger Boss Every 20 Kills
+        if (coopState.kills > 0 && coopState.kills % 20 === 0 && !coopState.bossActive) {
+            zombies = []; // Clear field
+            zombies.push({
+                id: 'boss_' + coopState.wave, isBoss: true,
+                x: canvas.width/2, y: 100, w: 100, h: 140,
+                hp: 2000 + coopState.wave * 100, maxHp: 2000 + coopState.wave * 100, 
+                vx: 0, vy: 0, facing: 1, isGrounded: false
+            });
+            coopState.bossActive = true;
+            showWarning("⚠️ INFECTED BEHEMOTH HAS AWOKEN ⚠️", 4000);
+        }
+
+        if (!coopState.bossActive) {
+            coopState.spawnTimer--; let maxZombies = 5 + coopState.wave * 2;
+            if (coopState.spawnTimer <= 0 && zombies.length < maxZombies) {
+                zombies.push({ id: Math.random().toString(), x: Math.random() > 0.5 ? 80 : 1320, y: 100, w: 35, h: 50, hp: 20 + coopState.wave * 10, maxHp: 20 + coopState.wave * 10, vx: 0, vy: 0, facing: 1, isGrounded: false });
+                coopState.spawnTimer = Math.max(60, 150 - coopState.wave * 15);
+            }
         }
 
         for(let i=zombies.length-1; i>=0; i--) {
             let z = zombies[i];
             if (z.hp <= 0) {
-                coopState.kills++; if (coopState.kills % 10 === 0) { coopState.wave++; showWarning("WAVE " + coopState.wave, 2000); }
-                spawnParticles(z.x+20, z.y+25, '#ff8c00', 30, 8); zombies.splice(i, 1); continue;
+                if (z.isBoss) {
+                    coopState.bossActive = false; coopState.kills++; coopState.wave += 2;
+                    showWarning("BEHEMOTH FELLED!", 3000);
+                } else {
+                    coopState.kills++; 
+                    if (coopState.kills % 20 !== 0 && coopState.kills % 10 === 0) { coopState.wave++; showWarning("WAVE " + coopState.wave, 2000); }
+                }
+                spawnParticles(z.x+z.w/2, z.y+z.h/2, '#ff8c00', z.isBoss ? 100 : 30, z.isBoss ? 15 : 8); 
+                zombies.splice(i, 1); 
+                document.getElementById('coop-wave').innerText = coopState.wave; document.getElementById('coop-kills').innerText = coopState.kills;
+                continue;
             }
             z.vy += 0.7; z.x += z.vx; z.y += z.vy; z.isGrounded = false;
             map.platforms.forEach(plat => { let prevY = z.y - z.vy; if (prevY + z.h <= plat.y + 1 && z.y + z.h >= plat.y) { if (z.x + z.w > plat.x && z.x < plat.x + plat.w) { z.y = plat.y - z.h; z.vy = 0; z.isGrounded = true; } } });
@@ -546,10 +570,12 @@ function update() {
             let p2Dist = otherPlayer.hp > 0 ? Math.abs(otherPlayer.x - z.x) : 9999;
             let target = (p1Dist !== 9999 || p2Dist !== 9999) ? (p1Dist < p2Dist ? player : otherPlayer) : null;
             
-            if (target) { if (target.x < z.x) { z.vx -= 0.15; z.facing = -1; } else { z.vx += 0.15; z.facing = 1; } }
-            z.vx *= 0.9; let maxSpd = Math.min(6, 2 + coopState.wave * 0.3);
+            let accel = z.isBoss ? 0.25 : 0.15;
+            if (target) { if (target.x < z.x) { z.vx -= accel; z.facing = -1; } else { z.vx += accel; z.facing = 1; } }
+            z.vx *= 0.9; 
+            let maxSpd = z.isBoss ? 4.5 : Math.min(6, 2 + coopState.wave * 0.3);
             if (Math.abs(z.vx) > maxSpd) z.vx = Math.sign(z.vx) * maxSpd;
-            if (z.isGrounded && Math.abs(z.vx) < 0.5 && Math.random() < 0.05 && target && target.y < z.y) { z.vy = -13; }
+            if (z.isGrounded && Math.abs(z.vx) < 0.5 && Math.random() < 0.05 && target && target.y < z.y) { z.vy = z.isBoss ? -16 : -13; }
         }
     }
 
@@ -612,9 +638,14 @@ function draw() {
 
     if (isCoop) {
         zombies.forEach(z => {
-            ctx.fillStyle = '#1a2e1a'; ctx.fillRect(z.x, z.y, z.w, z.h); // Body
-            ctx.fillStyle = '#ff8c00'; let eyeX = z.facing === 1 ? z.x + 20 : z.x + 5; ctx.fillRect(eyeX, z.y + 10, 10, 5); // Eyes
-            ctx.fillStyle = '#f00'; ctx.fillRect(z.x, z.y - 10, z.w * (z.hp / z.maxHp), 4); // HP
+            if (z.isBoss) {
+                ctx.fillStyle = '#3a0000'; ctx.fillRect(z.x, z.y, z.w, z.h); // Boss Body
+                ctx.fillStyle = '#ff0000'; let eyeX = z.facing === 1 ? z.x + 60 : z.x + 10; ctx.fillRect(eyeX, z.y + 20, 30, 15); // Boss Eyes
+            } else {
+                ctx.fillStyle = '#1a2e1a'; ctx.fillRect(z.x, z.y, z.w, z.h); // Body
+                ctx.fillStyle = '#ff8c00'; let eyeX = z.facing === 1 ? z.x + 20 : z.x + 5; ctx.fillRect(eyeX, z.y + 10, 10, 5); // Eyes
+                ctx.fillStyle = '#f00'; ctx.fillRect(z.x, z.y - 10, z.w * (z.hp / z.maxHp), 4); // HP
+            }
         });
     }
 
@@ -635,7 +666,20 @@ function draw() {
         ctx.beginPath(); ctx.moveTo(p.w/2, 0); ctx.quadraticCurveTo(p.w/4, p.h/2, -p.w/2, p.h/4); ctx.lineTo(-p.w/1.2, 0); ctx.lineTo(-p.w/2, -p.h/4); ctx.quadraticCurveTo(p.w/4, -p.h/2, p.w/2, 0); ctx.fill(); 
         ctx.restore(); 
     });
-    particles.forEach(p => { ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill(); }); ctx.restore();
+    particles.forEach(p => { ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill(); }); 
+    
+    ctx.restore();
+
+    // Draw Boss HP Overlay (Top layer)
+    if (isCoop && coopState.bossActive) {
+        let boss = zombies.find(z => z.isBoss);
+        if (boss) {
+            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(canvas.width/2 - 310, 40, 620, 40);
+            ctx.fillStyle = '#333'; ctx.fillRect(canvas.width/2 - 300, 60, 600, 15);
+            ctx.fillStyle = '#ff0000'; ctx.fillRect(canvas.width/2 - 300, 60, 600 * (boss.hp / boss.maxHp), 15);
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Arial'; ctx.textAlign = 'center'; ctx.fillText("INFECTED BEHEMOTH (BOSS)", canvas.width/2, 55);
+        }
+    }
 }
 
 function loop() { update(); draw(); for(let k in keys) prevKeys[k] = keys[k]; requestAnimationFrame(loop); }
