@@ -204,7 +204,7 @@ function getSkinColors(skinStr, isDash) {
     }
 }
 
-// Exactly 5 Rooms
+// Exactly 5 Rooms: 3 PVP, 2 CO-OP
 const arenas = [
     { id: 'arena1', name: "The Crossroads", type: "(PVP Flat)" }, 
     { id: 'arena2', name: "Greenpath", type: "(PVP Platforms)" },
@@ -238,7 +238,7 @@ function initLobbyRadar() {
 }
 function checkRoom(arenaId) {
     return new Promise((resolve) => {
-        let tId = 'nspvp-v16-' + arenaId; 
+        let tId = 'nspvp-v20-' + arenaId; 
         let timeout = setTimeout(() => { if (probeCallbacks[tId]) { probeCallbacks[tId](0); delete probeCallbacks[tId]; } }, 1500);
         probeCallbacks[tId] = (result) => { clearTimeout(timeout); resolve(result); };
         let c = lobbyPeer.connect(tId, { metadata: { type: 'probe' } });
@@ -263,6 +263,7 @@ initLobbyRadar();
 let peer, conn, isHost = false, gameStarted = false;
 let isCoop = false;
 let zombies = []; let coopState = { wave: 1, kills: 0, spawnTimer: 60, bossActive: false, bossSpells: [] };
+let healthPacks = []; // 新增：全局急救包数组
 
 const map = { floor: 650, walls: [{x: 50, y:-500, w: 20, h:1500}, {x: 1400, y:-500, w: 20, h:1500}], platforms: [], themeColor: '#11151c', platColor: '#444' };
 
@@ -286,7 +287,7 @@ function initMultiplayer(role, arenaId) {
     player.avatar = savedAvatar;
 
     if (lobbyPeer) { lobbyPeer.destroy(); lobbyPeer = null; }
-    loadMap(arenaId); const globalId = 'nspvp-v16-' + arenaId; if(peer) peer.destroy();
+    loadMap(arenaId); const globalId = 'nspvp-v20-' + arenaId; if(peer) peer.destroy();
 
     peer = new Peer(role === 'host' ? globalId : null, { config: { 'iceServers': [ { urls: 'stun:stun.l.google.com:19302' } ] } });
     peer.on('open', () => { if(role === 'host') { isHost = true; document.getElementById('conn-status').innerText = `Hosting! Waiting for ally/opponent...`; } else { connectToHost(globalId); } });
@@ -330,6 +331,15 @@ function setupDataHandlers() {
             document.getElementById('ui-opp-avatar').src = otherPlayer.avatar;
             return; 
         }
+        
+        // --- 接收急救包同步指令 ---
+        if(data.type === 'spawn_pack') { healthPacks.push(data.pack); return; }
+        if(data.type === 'consume_pack') { 
+            let idx = healthPacks.findIndex(p => p.id === data.id);
+            if(idx !== -1) { spawnParticles(healthPacks[idx].x+10, healthPacks[idx].y+10, '#00ff00', 20, 5); healthPacks.splice(idx, 1); }
+            return; 
+        }
+
         if (data.type === 'zombie_hit' && isHost) { let z = zombies.find(z => z.id === data.id); if (z) { z.hp -= data.dmg; z.vx = z.x > data.sourceX ? 15 : -15; } return; }
 
         otherPlayer.x = data.x; otherPlayer.y = data.y; otherPlayer.hp = data.hp;
@@ -450,7 +460,10 @@ const player = {
         if(isCoop && this.invincible <= 0) { 
             zombies.forEach(z => { if (checkRectOverlap(this, z)) { this.takeDamage(z.isBoss?2:1, z.x); } }); 
             if (coopState.bossSpells) {
-                coopState.bossSpells.forEach(s => { let sRect = {x: s.x-10, y: s.y-12, w: 20, h: 24}; if (checkRectOverlap(this, sRect)) { this.takeDamage(2, s.x); } });
+                coopState.bossSpells.forEach(s => { 
+                    let sRect = {x: s.x, y: s.y, w: s.w||20, h: s.h||24}; 
+                    if (checkRectOverlap(this, sRect)) { this.takeDamage(s.type==='homework'?3:2, s.x); } 
+                });
             }
         }
 
@@ -498,6 +511,7 @@ const player = {
 
         if(this.attackT > 8 && this.hp > 0) {
             ctx.save(); ctx.translate(this.x+15, this.y+22); if(this.facing === -1 && this.attackD !== 'up' && this.attackD !== 'down') ctx.scale(-1, 1);
+            
             if (this.attackD === 'thrust') {
                 ctx.shadowColor = '#fff'; ctx.shadowBlur = 10; ctx.fillStyle = '#ddd';
                 ctx.beginPath(); ctx.moveTo(15, -2); ctx.lineTo(160, -2); ctx.lineTo(180, 0); ctx.lineTo(160, 2); ctx.lineTo(15, 2); ctx.fill();
@@ -522,87 +536,134 @@ function update() {
     if(hitStopFrames > 0) { hitStopFrames--; return; }
     
     // Host AI Update for Zombies & Boss
-    if (isHost && isCoop && !gameOver) {
-        if (!coopState.bossSpells) coopState.bossSpells = [];
-
-        // Trigger Boss Every 20 Kills
-        if (coopState.kills > 0 && coopState.kills % 20 === 0 && !coopState.bossActive) {
-            zombies = []; // Clear field
-            // Boss 出现：高度修复为 320，使得中心在 385，底边在 450 左右，玩家完全可以跳劈砍到
-            zombies.push({
-                id: 'boss_' + coopState.wave, isBoss: true,
-                x: canvas.width/2 - 45, y: 320, baseY: 320, w: 90, h: 130,
-                hp: 2000 + coopState.wave * 100, maxHp: 2000 + coopState.wave * 100, 
-                vx: 0, vy: 0, facing: 1, isGrounded: false, attackTimer: 100
-            });
-            coopState.bossActive = true;
-            showWarning("⚠️ SUPREME HEADMASTER HAS AWOKEN ⚠️", 4000);
+    if (isHost && !gameOver) {
+        // 随机掉落急救包 (约每10秒)
+        if (Math.random() < 0.002) { 
+            let pack = { id: Math.random().toString(), x: Math.random() * (map.walls[1].x - map.walls[0].x - 60) + map.walls[0].x + 30, y: -50, w: 20, h: 20, vy: 0, life: 600 };
+            healthPacks.push(pack);
+            if (conn && conn.open) conn.send({ type: 'spawn_pack', pack: pack });
         }
 
-        if (!coopState.bossActive) {
-            coopState.spawnTimer--; let maxZombies = 5 + coopState.wave * 2;
-            if (coopState.spawnTimer <= 0 && zombies.length < maxZombies) {
-                zombies.push({ id: Math.random().toString(), x: Math.random() > 0.5 ? 80 : 1320, y: 100, w: 35, h: 50, hp: 20 + coopState.wave * 10, maxHp: 20 + coopState.wave * 10, vx: 0, vy: 0, facing: 1, isGrounded: false });
-                coopState.spawnTimer = Math.max(60, 150 - coopState.wave * 15);
+        if (isCoop) {
+            if (!coopState.bossSpells) coopState.bossSpells = [];
+            if (coopState.kills > 0 && coopState.kills % 20 === 0 && !coopState.bossActive) {
+                zombies = []; 
+                zombies.push({
+                    id: 'boss_' + coopState.wave, isBoss: true, phase: 1, isDashing: false,
+                    x: canvas.width/2 - 45, y: 320, baseY: 320, w: 90, h: 130,
+                    hp: 2000 + coopState.wave * 100, maxHp: 2000 + coopState.wave * 100, 
+                    vx: 0, vy: 0, facing: 1, isGrounded: false, attackTimer: 100
+                });
+                coopState.bossActive = true;
+                showWarning("⚠️ SUPREME HEADMASTER HAS AWOKEN ⚠️", 4000);
             }
-        }
 
-        for(let i=zombies.length-1; i>=0; i--) {
-            let z = zombies[i];
-            if (z.hp <= 0) {
-                if (z.isBoss) {
-                    coopState.bossActive = false; coopState.kills++; coopState.wave += 2;
-                    showWarning("SUPREME HEADMASTER FELLED!", 3000);
-                } else {
-                    coopState.kills++; 
-                    if (coopState.kills % 20 !== 0 && coopState.kills % 10 === 0) { coopState.wave++; showWarning("WAVE " + coopState.wave, 2000); }
+            if (!coopState.bossActive) {
+                coopState.spawnTimer--; let maxZombies = 5 + coopState.wave * 2;
+                if (coopState.spawnTimer <= 0 && zombies.length < maxZombies) {
+                    zombies.push({ id: Math.random().toString(), x: Math.random() > 0.5 ? 80 : 1320, y: 100, w: 35, h: 50, hp: 20 + coopState.wave * 10, maxHp: 20 + coopState.wave * 10, vx: 0, vy: 0, facing: 1, isGrounded: false });
+                    coopState.spawnTimer = Math.max(60, 150 - coopState.wave * 15);
                 }
-                spawnParticles(z.x+z.w/2, z.y+z.h/2, '#ff8c00', z.isBoss ? 100 : 30, z.isBoss ? 15 : 8); 
-                zombies.splice(i, 1); 
-                document.getElementById('coop-wave').innerText = coopState.wave; document.getElementById('coop-kills').innerText = coopState.kills;
-                continue;
             }
 
-            let p1Dist = player.hp > 0 ? Math.abs(player.x - z.x) : 9999;
-            let p2Dist = otherPlayer.hp > 0 ? Math.abs(otherPlayer.x - z.x) : 9999;
-            let target = (p1Dist !== 9999 || p2Dist !== 9999) ? (p1Dist < p2Dist ? player : otherPlayer) : null;
+            for(let i=zombies.length-1; i>=0; i--) {
+                let z = zombies[i];
+                if (z.hp <= 0) {
+                    if (z.isBoss) {
+                        coopState.bossActive = false; coopState.kills++; coopState.wave += 2;
+                        showWarning("SUPREME HEADMASTER FELLED!", 3000);
+                    } else {
+                        coopState.kills++; 
+                        if (coopState.kills % 20 !== 0 && coopState.kills % 10 === 0) { coopState.wave++; showWarning("WAVE " + coopState.wave, 2000); }
+                    }
+                    spawnParticles(z.x+z.w/2, z.y+z.h/2, '#ff8c00', z.isBoss ? 100 : 30, z.isBoss ? 15 : 8); 
+                    zombies.splice(i, 1); 
+                    document.getElementById('coop-wave').innerText = coopState.wave; document.getElementById('coop-kills').innerText = coopState.kills;
+                    continue;
+                }
 
-            if (z.isBoss) {
-                // Boss Hover Behavior (修复之前向上飘的BUG)
-                z.y = z.baseY + Math.sin(Date.now() / 400) * 30;
-                if (target) z.facing = target.x < z.x ? -1 : 1;
-                
-                // Boss Attack AI (Test Papers)
-                z.attackTimer--;
-                if (z.attackTimer <= 0) {
-                    z.attackTimer = 120 - Math.min(60, coopState.wave * 3); // gets faster
-                    if (target) {
-                        let angle = Math.atan2((target.y+20) - (z.y+60), target.x - (z.x+45));
-                        for(let k=-1; k<=1; k++) {
-                            coopState.bossSpells.push({x: z.x+45, y: z.y+60, vx: Math.cos(angle + k*0.25)*7, vy: Math.sin(angle + k*0.25)*7, life: 180});
+                let p1Dist = player.hp > 0 ? Math.abs(player.x - z.x) : 9999;
+                let p2Dist = otherPlayer.hp > 0 ? Math.abs(otherPlayer.x - z.x) : 9999;
+                let target = (p1Dist !== 9999 || p2Dist !== 9999) ? (p1Dist < p2Dist ? player : otherPlayer) : null;
+
+                if (z.isBoss) {
+                    z.phase = (z.hp < z.maxHp * 0.5) ? 2 : 1; 
+                    z.y = z.baseY + Math.sin(Date.now() / 400) * 30;
+                    if (target && !z.isDashing) z.facing = target.x < z.x ? -1 : 1;
+                    
+                    z.attackTimer--;
+                    if (z.attackTimer <= 0) {
+                        z.isDashing = false; 
+                        z.attackTimer = z.phase === 2 ? 80 : 120; 
+                        let roll = Math.random();
+
+                        if (roll < 0.4) {
+                            if (target) {
+                                let angle = Math.atan2((target.y+20) - (z.y+60), target.x - (z.x+45));
+                                let count = z.phase === 2 ? 2 : 1; 
+                                for(let k=-count-1; k<=count+1; k++) {
+                                    coopState.bossSpells.push({type: 'paper', x: z.x+45, y: z.y+60, vx: Math.cos(angle + k*0.2)*8, vy: Math.sin(angle + k*0.2)*8, life: 180, w: 20, h: 24});
+                                }
+                            }
+                        } else if (roll < 0.75) {
+                            let dropCount = z.phase === 2 ? 6 : 4;
+                            for(let j=0; j<dropCount; j++) {
+                                let dropX = Math.random() * (map.walls[1].x - map.walls[0].x - 60) + map.walls[0].x;
+                                coopState.bossSpells.push({type: 'homework', x: dropX, y: map.floor - 800 - (Math.random()*400), vx: 0, vy: 12 + (z.phase*2), life: 300, w: 60, h: 80});
+                            }
+                        } else {
+                            z.isDashing = true; z.vx = z.facing * (z.phase === 2 ? 25 : 18); z.attackTimer = 60;
                         }
                     }
+                    z.x += z.vx; z.vx *= 0.9; 
+                    let maxSpd = z.isDashing ? 30 : 4.5;
+                    if (Math.abs(z.vx) > maxSpd) z.vx = Math.sign(z.vx) * maxSpd;
+                    if (z.x < map.walls[0].x + map.walls[0].w) z.x = map.walls[0].x + map.walls[0].w;
+                    if (z.x + z.w > map.walls[1].x) z.x = map.walls[1].x - z.w;
+
+                } else {
+                    z.vy += 0.7; z.x += z.vx; z.y += z.vy; z.isGrounded = false;
+                    map.platforms.forEach(plat => { let prevY = z.y - z.vy; if (prevY + z.h <= plat.y + 1 && z.y + z.h >= plat.y) { if (z.x + z.w > plat.x && z.x < plat.x + plat.w) { z.y = plat.y - z.h; z.vy = 0; z.isGrounded = true; } } });
+                    if (z.y + z.h > map.floor) { z.y = map.floor - z.h; z.vy = 0; z.isGrounded = true; }
+                    if (z.x < map.walls[0].x + map.walls[0].w) z.x = map.walls[0].x + map.walls[0].w;
+                    if (z.x + z.w > map.walls[1].x) z.x = map.walls[1].x - z.w;
+                    
+                    if (target) { if (target.x < z.x) { z.vx -= 0.15; z.facing = -1; } else { z.vx += 0.15; z.facing = 1; } }
+                    z.vx *= 0.9; let maxSpd = Math.min(6, 2 + coopState.wave * 0.3);
+                    if (Math.abs(z.vx) > maxSpd) z.vx = Math.sign(z.vx) * maxSpd;
+                    if (z.isGrounded && Math.abs(z.vx) < 0.5 && Math.random() < 0.05 && target && target.y < z.y) { z.vy = -13; }
                 }
-            } else {
-                z.vy += 0.7; z.x += z.vx; z.y += z.vy; z.isGrounded = false;
-                map.platforms.forEach(plat => { let prevY = z.y - z.vy; if (prevY + z.h <= plat.y + 1 && z.y + z.h >= plat.y) { if (z.x + z.w > plat.x && z.x < plat.x + plat.w) { z.y = plat.y - z.h; z.vy = 0; z.isGrounded = true; } } });
-                if (z.y + z.h > map.floor) { z.y = map.floor - z.h; z.vy = 0; z.isGrounded = true; }
-                if (z.x < map.walls[0].x + map.walls[0].w) z.x = map.walls[0].x + map.walls[0].w;
-                if (z.x + z.w > map.walls[1].x) z.x = map.walls[1].x - z.w;
-                
-                if (target) { if (target.x < z.x) { z.vx -= 0.15; z.facing = -1; } else { z.vx += 0.15; z.facing = 1; } }
-                z.vx *= 0.9; let maxSpd = Math.min(6, 2 + coopState.wave * 0.3);
-                if (Math.abs(z.vx) > maxSpd) z.vx = Math.sign(z.vx) * maxSpd;
-                if (z.isGrounded && Math.abs(z.vx) < 0.5 && Math.random() < 0.05 && target && target.y < z.y) { z.vy = -13; }
+            }
+
+            for (let i = coopState.bossSpells.length - 1; i >= 0; i--) {
+                let s = coopState.bossSpells[i];
+                s.x += s.vx; s.y += s.vy; s.life--;
+
+                if (s.type === 'homework' && s.y + s.h > map.floor) {
+                    s.life = 0; screenShake = 5; 
+                    spawnParticles(s.x + s.w/2, map.floor, '#444', 15, 5);
+                }
+                if (s.life <= 0) coopState.bossSpells.splice(i, 1);
             }
         }
+    }
 
-        // Update Boss Spells
-        for (let i = coopState.bossSpells.length - 1; i >= 0; i--) {
-            let s = coopState.bossSpells[i];
-            s.x += s.vx; s.y += s.vy; s.life--;
-            if (s.life <= 0) coopState.bossSpells.splice(i, 1);
+    // --- 急救包物理与检测 (全体玩家同时执行) ---
+    for (let i = healthPacks.length - 1; i >= 0; i--) {
+        let p = healthPacks[i];
+        p.vy += 0.2; p.y += p.vy; p.life--;
+        
+        map.platforms.forEach(plat => { let prevY = p.y - p.vy; if (prevY + p.h <= plat.y + 1 && p.y + p.h >= plat.y) { if (p.x + p.w > plat.x && p.x < plat.x + plat.w) { p.y = plat.y - p.h; p.vy = 0; } } });
+        if (p.y + p.h > map.floor) { p.y = map.floor - p.h; p.vy = 0; }
+
+        if (player.hp > 0 && checkRectOverlap(player, p)) {
+            player.hp = Math.min(player.maxHp, player.hp + 5);
+            spawnParticles(p.x+10, p.y+10, '#00ff00', 20, 5);
+            if (conn && conn.open) conn.send({ type: 'consume_pack', id: p.id });
+            healthPacks.splice(i, 1);
+            continue;
         }
+        if (p.life <= 0) healthPacks.splice(i, 1);
     }
 
     player.update(); syncData();
@@ -660,78 +721,79 @@ function draw() {
     ctx.fillStyle = map.themeColor; map.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
     ctx.fillStyle = map.platColor; map.platforms.forEach(p => { ctx.fillRect(p.x, p.y, p.w, p.h); });
 
+    // 绘制急救包
+    healthPacks.forEach(p => {
+        let pulse = Math.sin(Date.now() / 150) * 5 + 15;
+        ctx.save(); ctx.translate(p.x + p.w/2, p.y + p.h/2);
+        ctx.globalAlpha = p.life < 60 ? (p.life % 10 < 5 ? 0.2 : 0.8) : 1; 
+        ctx.shadowColor = '#00ff00'; ctx.shadowBlur = pulse; ctx.fillStyle = '#00ff00';
+        ctx.fillRect(-p.w/2, -p.h/6, p.w, p.h/3); ctx.fillRect(-p.w/6, -p.h/2, p.w/3, p.h);
+        ctx.fillStyle = '#fff'; ctx.shadowBlur = 0;
+        ctx.fillRect(-p.w/4, -p.h/12, p.w/2, p.h/6); ctx.fillRect(-p.w/12, -p.h/4, p.w/6, p.h/2);
+        ctx.restore();
+    });
+
     if(gameStarted) { player.draw.call(otherPlayer, false); player.draw(true); }
 
     if (isCoop) {
         zombies.forEach(z => {
             ctx.save(); ctx.translate(z.x + z.w/2, z.y + z.h/2);
             if (z.isBoss) {
-                // 美化版：无上校长 Boss
-                ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 15;
-                
-                // 黑蓝色法袍
+                ctx.shadowColor = z.phase === 2 ? '#ff0000' : '#00e5ff'; 
+                ctx.shadowBlur = z.phase === 2 ? 25 : 15;
                 ctx.fillStyle = '#0f1724';
                 ctx.beginPath(); ctx.moveTo(-z.w/2, z.h/2); ctx.quadraticCurveTo(0, z.h/2 + 20, z.w/2, z.h/2); ctx.lineTo(z.w/2.5, -z.h/4); ctx.lineTo(-z.w/2.5, -z.h/4); ctx.fill();
-                
-                // 发光青色符文
-                ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 3;
+                ctx.strokeStyle = z.phase === 2 ? '#ff3333' : '#00e5ff'; ctx.lineWidth = 3;
                 ctx.beginPath(); ctx.moveTo(-z.w/4, z.h/2 - 10); ctx.lineTo(0, z.h/4); ctx.lineTo(z.w/4, z.h/2 - 10); ctx.stroke();
-                
-                // 肩甲
                 ctx.fillStyle = '#1c2838'; ctx.shadowBlur = 5;
                 ctx.beginPath(); ctx.ellipse(0, -z.h/4 + 10, z.w/2 + 15, 15, 0, 0, Math.PI*2); ctx.fill();
-                
-                // 虚空头部
                 ctx.fillStyle = '#050505'; ctx.shadowBlur = 0;
                 ctx.beginPath(); ctx.arc(0, -z.h/4 - 15, 28, 0, Math.PI*2); ctx.fill();
-                
-                // 青色发光双眼
-                ctx.fillStyle = '#00e5ff'; ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 20;
+                ctx.fillStyle = z.phase === 2 ? '#ff0000' : '#00e5ff'; 
+                ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 20;
                 let eyeOffset = z.facing === 1 ? 5 : -5;
                 ctx.beginPath(); ctx.ellipse(-12 + eyeOffset, -z.h/4 - 15, 6, 12, -0.2, 0, Math.PI*2); ctx.fill();
                 ctx.beginPath(); ctx.ellipse(8 + eyeOffset, -z.h/4 - 15, 6, 12, 0.2, 0, Math.PI*2); ctx.fill();
-                
-                // 学士帽
                 ctx.fillStyle = '#111'; ctx.shadowBlur = 10;
                 ctx.beginPath(); ctx.moveTo(0, -z.h/2 - 35); ctx.lineTo(60, -z.h/4 - 40); ctx.lineTo(0, -z.h/4 - 15); ctx.lineTo(-60, -z.h/4 - 40); ctx.fill();
-                ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 2; ctx.stroke();
-                
-                // 流苏
+                ctx.strokeStyle = z.phase === 2 ? '#ff0000' : '#00e5ff'; ctx.lineWidth = 2; ctx.stroke();
                 ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
                 ctx.beginPath(); ctx.moveTo(0, -z.h/4 - 25); ctx.lineTo(-50, -z.h/4 - 5); ctx.stroke();
-                
-                // 教鞭/法杖
                 ctx.fillStyle = '#443322'; ctx.fillRect(z.facing === 1 ? z.w/2 : -z.w/2 - 5, -z.h/4, 5, 80);
-                ctx.fillStyle = '#00e5ff'; ctx.beginPath(); ctx.arc(z.facing === 1 ? z.w/2 + 2.5 : -z.w/2 - 2.5, -z.h/4, 10, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = z.phase === 2 ? '#ff0000' : '#00e5ff'; 
+                ctx.beginPath(); ctx.arc(z.facing === 1 ? z.w/2 + 2.5 : -z.w/2 - 2.5, -z.h/4, 10, 0, Math.PI*2); ctx.fill();
             } else {
-                // 美化版：感染躯壳
-                ctx.fillStyle = '#1a1a1a'; // 佝偻的身体
+                ctx.fillStyle = '#1a1a1a'; 
                 ctx.beginPath(); ctx.moveTo(-z.w/2, z.h/2); ctx.quadraticCurveTo(-z.w/2, -z.h/2, 0, -z.h/2); ctx.quadraticCurveTo(z.w/2, -z.h/2 + 10, z.w/2, z.h/2); ctx.fill();
-                
-                // 橙色感染脓包
                 let bulgeOffset = z.facing === 1 ? -10 : 10;
                 ctx.fillStyle = '#ff8c00'; ctx.shadowColor = '#ff8c00'; ctx.shadowBlur = 15;
                 ctx.beginPath(); ctx.arc(bulgeOffset, -z.h/2 + 5, 18, 0, Math.PI*2); ctx.fill();
                 ctx.fillStyle = '#ffaa00'; ctx.beginPath(); ctx.arc(bulgeOffset + 5, -z.h/2, 8, 0, Math.PI*2); ctx.fill();
-                
-                // 橙色发光眼
                 ctx.shadowBlur = 15; let eyeX = z.facing === 1 ? 10 : -10;
                 ctx.fillStyle = '#ff8c00'; ctx.beginPath(); ctx.arc(eyeX, -z.h/4, 6, 0, Math.PI*2); ctx.fill();
-                
                 ctx.shadowBlur = 0; ctx.fillStyle = '#f00'; ctx.fillRect(-z.w/2, -z.h/2 - 20, z.w * (z.hp / z.maxHp), 4);
             }
             ctx.restore();
         });
 
-        // 渲染 Boss 弹幕 (飞行的卷子)
         if (coopState.bossSpells) {
             coopState.bossSpells.forEach(s => {
-                ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.life * 0.15);
-                ctx.fillStyle = '#fff'; ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 15;
-                ctx.fillRect(-10, -12, 20, 24); 
-                ctx.fillStyle = '#000'; ctx.shadowBlur = 0; // 试卷上的文字
-                ctx.fillRect(-6, -6, 12, 2); ctx.fillRect(-6, 0, 12, 2); ctx.fillRect(-6, 6, 8, 2);
-                ctx.restore();
+                if (s.type === 'paper') {
+                    ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.life * 0.15);
+                    ctx.fillStyle = '#fff'; ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 15;
+                    ctx.fillRect(-10, -12, 20, 24); 
+                    ctx.fillStyle = '#000'; ctx.shadowBlur = 0;
+                    ctx.fillRect(-6, -6, 12, 2); ctx.fillRect(-6, 0, 12, 2); ctx.fillRect(-6, 6, 8, 2);
+                    ctx.restore();
+                } else if (s.type === 'homework') {
+                    ctx.save(); ctx.translate(s.x, s.y);
+                    ctx.fillStyle = '#223344'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 20;
+                    ctx.fillRect(0, 0, s.w, s.h);
+                    ctx.fillStyle = '#fff'; ctx.fillRect(4, 4, s.w-8, s.h-8);
+                    ctx.fillStyle = '#f00'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center';
+                    ctx.fillText("考", s.w/2, s.h/2 + 8);
+                    ctx.restore();
+                }
             });
         }
     }
@@ -757,7 +819,6 @@ function draw() {
     
     ctx.restore();
 
-    // 史诗级 Boss 血条 UI
     if (isCoop && coopState.bossActive) {
         let boss = zombies.find(z => z.isBoss);
         if (boss) {
@@ -766,7 +827,7 @@ function draw() {
             ctx.fillStyle = '#ff0000'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 10;
             ctx.fillRect(canvas.width/2 - 300, 65, 600 * (boss.hp / boss.maxHp), 15);
             ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Segoe UI'; ctx.textAlign = 'center'; 
-            ctx.fillText("SUPREME HEADMASTER", canvas.width/2, 58);
+            ctx.fillText(boss.phase === 2 ? "SUPREME HEADMASTER: ENRAGED" : "SUPREME HEADMASTER", canvas.width/2, 58);
         }
     }
 }
