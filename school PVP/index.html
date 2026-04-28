@@ -238,7 +238,7 @@ function initLobbyRadar() {
 }
 function checkRoom(arenaId) {
     return new Promise((resolve) => {
-        let tId = 'nspvp-v20-' + arenaId; 
+        let tId = 'nspvp-v21-' + arenaId; 
         let timeout = setTimeout(() => { if (probeCallbacks[tId]) { probeCallbacks[tId](0); delete probeCallbacks[tId]; } }, 1500);
         probeCallbacks[tId] = (result) => { clearTimeout(timeout); resolve(result); };
         let c = lobbyPeer.connect(tId, { metadata: { type: 'probe' } });
@@ -263,7 +263,7 @@ initLobbyRadar();
 let peer, conn, isHost = false, gameStarted = false;
 let isCoop = false;
 let zombies = []; let coopState = { wave: 1, kills: 0, spawnTimer: 60, bossActive: false, bossSpells: [] };
-let healthPacks = []; // 新增：全局急救包数组
+let healthPacks = [];
 
 const map = { floor: 650, walls: [{x: 50, y:-500, w: 20, h:1500}, {x: 1400, y:-500, w: 20, h:1500}], platforms: [], themeColor: '#11151c', platColor: '#444' };
 
@@ -287,7 +287,7 @@ function initMultiplayer(role, arenaId) {
     player.avatar = savedAvatar;
 
     if (lobbyPeer) { lobbyPeer.destroy(); lobbyPeer = null; }
-    loadMap(arenaId); const globalId = 'nspvp-v20-' + arenaId; if(peer) peer.destroy();
+    loadMap(arenaId); const globalId = 'nspvp-v21-' + arenaId; if(peer) peer.destroy();
 
     peer = new Peer(role === 'host' ? globalId : null, { config: { 'iceServers': [ { urls: 'stun:stun.l.google.com:19302' } ] } });
     peer.on('open', () => { if(role === 'host') { isHost = true; document.getElementById('conn-status').innerText = `Hosting! Waiting for ally/opponent...`; } else { connectToHost(globalId); } });
@@ -332,7 +332,6 @@ function setupDataHandlers() {
             return; 
         }
         
-        // --- 接收急救包同步指令 ---
         if(data.type === 'spawn_pack') { healthPacks.push(data.pack); return; }
         if(data.type === 'consume_pack') { 
             let idx = healthPacks.findIndex(p => p.id === data.id);
@@ -379,6 +378,20 @@ window.addEventListener('keyup', e => { let k = e.key.toLowerCase(); if(keys.has
 function spawnParticles(x, y, color, count, speed) { for(let i=0; i<count; i++) particles.push({ x, y, vx: (Math.random()-0.5)*speed, vy: (Math.random()-0.5)*speed - 2, life: 1.0, color, size: Math.random()*3+2 }); }
 function checkRectOverlap(r1, r2) { return r1 && r2 && r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y < r2.y + r2.h && r1.y + r1.h > r2.y; }
 
+// --- 物理碰撞分离算法 ---
+function resolvePhysics(a, b, weightA = 0.5, weightB = 0.5) {
+    if (!a || !b || a.hp <= 0 || b.hp <= 0 || a.isDash || b.isDash) return;
+    if (checkRectOverlap(a, b)) {
+        let cxA = a.x + a.w/2; let cxB = b.x + b.w/2;
+        let overlap = (a.w/2 + b.w/2) - Math.abs(cxA - cxB);
+        if (overlap > 0) {
+            let push = Math.min(overlap, 4); // Max push per frame to avoid jitter
+            if (cxA > cxB) { a.x += push * weightA; b.x -= push * weightB; }
+            else { a.x -= push * weightA; b.x += push * weightB; }
+        }
+    }
+}
+
 const player = {
     x: 200, y: 500, w: 30, h: 45, vx: 0, vy: 0, speed: 7, jumpPower: -14, gravity: 0.7, facing: 1, hp: 25, maxHp: 25, soul: 0,
     isGrounded: false, canDJ: true, invincible: 0, isDash: false, dashD: 0, dashC: 0, attackT: 0, attackD: 'fw', isFocus: false, focusT: 0,
@@ -403,7 +416,6 @@ const player = {
             
             let triggerHitbox = false; let ab = {w:0, h:0, x:0, y:0}; let dmgToZombies = 15;
 
-            // K Key (Spell / Thrust)
             if (sp) {
                 if (isKnight && this.soul >= 22 && this.dashC <= 0 && this.attackT <= 0) {
                     this.soul -= 22; this.attackT = 20; this.attackD = 'thrust'; this.vx = this.facing * 12;
@@ -417,7 +429,6 @@ const player = {
                 }
             }
 
-            // J Key (Slash)
             if(ap && this.attackT <= 0) {
                 this.attackT = 16; this.attackD = keys.w ? 'up' : (keys.s && !this.isGrounded ? 'down' : 'fw');
                 ab = { w: 85, h: 80 }; if(this.attackD === 'up'){ ab.x=this.x-27; ab.y=this.y-70; } else if(this.attackD === 'down'){ ab.x=this.x-27; ab.y=this.y+this.h-10; } else { ab.x = this.facing === 1 ? this.x + this.w : this.x - ab.w; ab.y = this.y - 20; }
@@ -444,9 +455,8 @@ const player = {
         if(dp && this.dashC <= 0 && !this.isFocus) { this.isDash = true; this.dashD = 14; this.dashC = dashMaxCD; this.vy = 0; this.invincible = 16;}
         if(this.isDash) { this.vx = this.facing * 20; this.dashD--; if(this.dashD<=0) this.isDash=false; } else { this.vy += this.gravity; }
 
-        this.x += this.vx; if(this.x < map.walls[0].x + map.walls[0].w) this.x = map.walls[0].x + map.walls[0].w; if(this.x + this.w > map.walls[1].x) this.x = map.walls[1].x - this.w;
-        this.y += this.vy; this.isGrounded = false;
-
+        this.x += this.vx; this.y += this.vy; this.isGrounded = false;
+        
         if (this.vy >= 0 && !keys.s) { map.platforms.forEach(plat => { let prevY = this.y - this.vy; if (prevY + this.h <= plat.y + 1 && this.y + this.h >= plat.y) { if (this.x + this.w > plat.x && this.x < plat.x + plat.w) { this.y = plat.y - this.h; this.vy = 0; this.isGrounded = true; this.canDJ = true; } } }); }
         if(this.y + this.h >= map.floor) { this.y = map.floor - this.h; this.vy = 0; this.isGrounded = true; this.canDJ = true; }
         
@@ -535,9 +545,31 @@ function update() {
     if(!gameStarted) return;
     if(hitStopFrames > 0) { hitStopFrames--; return; }
     
-    // Host AI Update for Zombies & Boss
+    // --- 物理碰撞处理 (实体分离) ---
+    if (player.hp > 0 && otherPlayer.hp > 0) resolvePhysics(player, otherPlayer, 0.5, 0.5);
+    if (isCoop) {
+        zombies.forEach((z, i) => {
+            if (z.hp > 0) {
+                let zW = z.isBoss ? 0 : 0.8; let pW = z.isBoss ? 1.0 : 0.2;
+                resolvePhysics(player, z, pW, zW); resolvePhysics(otherPlayer, z, pW, zW);
+                if (isHost) {
+                    for(let j = i + 1; j < zombies.length; j++) {
+                        let z2 = zombies[j];
+                        if (z2.hp > 0) {
+                            if (z.isBoss) resolvePhysics(z, z2, 0, 1.0);
+                            else if (z2.isBoss) resolvePhysics(z, z2, 1.0, 0);
+                            else resolvePhysics(z, z2, 0.5, 0.5);
+                        }
+                    }
+                }
+            }
+        });
+    }
+    // 限制地图边界
+    let clampB = (ent) => { if(ent && ent.hp>0) { if(ent.x < map.walls[0].x+map.walls[0].w) ent.x = map.walls[0].x+map.walls[0].w; if(ent.x+ent.w > map.walls[1].x) ent.x = map.walls[1].x-ent.w; } };
+    clampB(player); if(isHost && isCoop) zombies.forEach(clampB);
+
     if (isHost && !gameOver) {
-        // 随机掉落急救包 (约每10秒)
         if (Math.random() < 0.002) { 
             let pack = { id: Math.random().toString(), x: Math.random() * (map.walls[1].x - map.walls[0].x - 60) + map.walls[0].x + 30, y: -50, w: 20, h: 20, vy: 0, life: 600 };
             healthPacks.push(pack);
@@ -625,8 +657,6 @@ function update() {
                     z.vy += 0.7; z.x += z.vx; z.y += z.vy; z.isGrounded = false;
                     map.platforms.forEach(plat => { let prevY = z.y - z.vy; if (prevY + z.h <= plat.y + 1 && z.y + z.h >= plat.y) { if (z.x + z.w > plat.x && z.x < plat.x + plat.w) { z.y = plat.y - z.h; z.vy = 0; z.isGrounded = true; } } });
                     if (z.y + z.h > map.floor) { z.y = map.floor - z.h; z.vy = 0; z.isGrounded = true; }
-                    if (z.x < map.walls[0].x + map.walls[0].w) z.x = map.walls[0].x + map.walls[0].w;
-                    if (z.x + z.w > map.walls[1].x) z.x = map.walls[1].x - z.w;
                     
                     if (target) { if (target.x < z.x) { z.vx -= 0.15; z.facing = -1; } else { z.vx += 0.15; z.facing = 1; } }
                     z.vx *= 0.9; let maxSpd = Math.min(6, 2 + coopState.wave * 0.3);
@@ -648,7 +678,6 @@ function update() {
         }
     }
 
-    // --- 急救包物理与检测 (全体玩家同时执行) ---
     for (let i = healthPacks.length - 1; i >= 0; i--) {
         let p = healthPacks[i];
         p.vy += 0.2; p.y += p.vy; p.life--;
@@ -721,7 +750,6 @@ function draw() {
     ctx.fillStyle = map.themeColor; map.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
     ctx.fillStyle = map.platColor; map.platforms.forEach(p => { ctx.fillRect(p.x, p.y, p.w, p.h); });
 
-    // 绘制急救包
     healthPacks.forEach(p => {
         let pulse = Math.sin(Date.now() / 150) * 5 + 15;
         ctx.save(); ctx.translate(p.x + p.w/2, p.y + p.h/2);
