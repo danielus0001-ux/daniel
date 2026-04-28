@@ -55,15 +55,9 @@
         #coop-ui { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); text-align: center; display: none; z-index: 9; }
         .wave-text { font-size: 28px; color: #ff8c00; font-weight: bold; text-shadow: 0 0 15px #ff8c00; letter-spacing: 2px; margin-bottom: -5px;}
         .kills-text { font-size: 16px; color: #fff; text-shadow: 0 0 5px #000; font-weight: bold;}
-
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #111; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #00e5ff; }
     </style>
 </head>
 <body>
-
     <div id="leaderboard-modal">
         <div class="lb-header">
             <h3>🏆 Hall of Fame</h3>
@@ -152,7 +146,6 @@
     <canvas id="gameCanvas"></canvas>
 
 <script>
-// ================= Local Storage & Logic =================
 let savedName = localStorage.getItem('hk_pvp_name') || 'Knight';
 let savedSkin = localStorage.getItem('hk_pvp_skin') || 'original';
 let savedClass = localStorage.getItem('hk_pvp_class') || 'vessel';
@@ -211,7 +204,7 @@ function getSkinColors(skinStr, isDash) {
     }
 }
 
-// Exactly 5 Rooms: 3 PVP, 2 CO-OP
+// Exactly 5 Rooms
 const arenas = [
     { id: 'arena1', name: "The Crossroads", type: "(PVP Flat)" }, 
     { id: 'arena2', name: "Greenpath", type: "(PVP Platforms)" },
@@ -245,7 +238,7 @@ function initLobbyRadar() {
 }
 function checkRoom(arenaId) {
     return new Promise((resolve) => {
-        let tId = 'nspvp-v14-' + arenaId; // Bumped version
+        let tId = 'nspvp-v16-' + arenaId; 
         let timeout = setTimeout(() => { if (probeCallbacks[tId]) { probeCallbacks[tId](0); delete probeCallbacks[tId]; } }, 1500);
         probeCallbacks[tId] = (result) => { clearTimeout(timeout); resolve(result); };
         let c = lobbyPeer.connect(tId, { metadata: { type: 'probe' } });
@@ -293,7 +286,7 @@ function initMultiplayer(role, arenaId) {
     player.avatar = savedAvatar;
 
     if (lobbyPeer) { lobbyPeer.destroy(); lobbyPeer = null; }
-    loadMap(arenaId); const globalId = 'nspvp-v14-' + arenaId; if(peer) peer.destroy();
+    loadMap(arenaId); const globalId = 'nspvp-v16-' + arenaId; if(peer) peer.destroy();
 
     peer = new Peer(role === 'host' ? globalId : null, { config: { 'iceServers': [ { urls: 'stun:stun.l.google.com:19302' } ] } });
     peer.on('open', () => { if(role === 'host') { isHost = true; document.getElementById('conn-status').innerText = `Hosting! Waiting for ally/opponent...`; } else { connectToHost(globalId); } });
@@ -361,7 +354,7 @@ function syncData() {
             x: player.x, y: player.y, hp: player.hp, facing: player.facing, isDash: player.isDash, attackT: player.attackT, attackD: player.attackD,
             isFocus: player.isFocus, vx: player.vx, spawnSpell: localSpawnSpell, spellType: localSpellType, 
             spellX: player.facing === 1 ? player.x + player.w : player.x - 90, spellY: player.y - 25, 
-            spellVX: (player.charClass==='mage') ? player.facing*19.8 : player.facing*18 // Mage Spell Speed 1.1x
+            spellVX: (player.charClass==='mage') ? player.facing*19.8 : player.facing*18
         };
         if (isCoop && isHost) { packet.zombies = zombies; packet.coopState = coopState; }
         conn.send(packet); localSpawnSpell = false; 
@@ -387,8 +380,6 @@ const player = {
         
         let jp = (keys.w || keys.space) && !(prevKeys.w || prevKeys.space); let ap = keys.j && !prevKeys.j; let sp = keys.k && !prevKeys.k; let dp = keys.l && !prevKeys.l;
         let isKnight = this.charClass === 'knight'; let isMage = this.charClass === 'mage';
-        
-        // 骑士黑冲冷却速度调整为正常的 0.5 倍（冷却时间变长，90帧）
         let dashMaxCD = isKnight ? 90 : 45; 
 
         if(keys.f && this.isGrounded && this.hp < this.maxHp && this.soul >= 33 && !this.isDash) {
@@ -411,7 +402,7 @@ const player = {
                 } else if (!isKnight && this.soul >= 33) {
                     this.soul -= 33; localSpawnSpell = true; this.vx = this.facing * -5;
                     localSpellType = isMage ? 'blackgold' : 'normal';
-                    let sVX = isMage ? this.facing * 19.8 : this.facing * 18; // Mage Spell Speed 1.1x
+                    let sVX = isMage ? this.facing * 19.8 : this.facing * 18;
                     projectiles.push({ x: this.facing===1?this.x+this.w:this.x-90, y:this.y-25, vx: sVX, w: 90, h: 55, life: 100, facing: this.facing, isFromOpp: false, skin: this.skin, spellType: localSpellType });
                 }
             }
@@ -431,9 +422,9 @@ const player = {
                 if(isCoop) {
                     zombies.forEach(z => {
                         if(checkRectOverlap(ab, z)) {
-                            spawnParticles(z.x+20, z.y+30, '#ff8c00', 15, 8); this.soul = Math.min(99, this.soul + 11); hitStopFrames = 4; screenShake = 8;
+                            spawnParticles(z.x+z.w/2, z.y+z.h/2, '#ff8c00', 15, 8); this.soul = Math.min(99, this.soul + 11); hitStopFrames = 4; screenShake = 8;
                             if(this.attackD === 'down') { this.vy = -13; this.canDJ = true; } else if(this.attackD === 'up') { this.vy += 2; } else { this.vx = this.facing * -6; }
-                            if (isHost) { z.hp -= dmgToZombies; z.vx = this.facing * 10; } else { conn.send({ type: 'zombie_hit', id: z.id, dmg: dmgToZombies, sourceX: this.x }); }
+                            if (isHost) { z.hp -= dmgToZombies; z.vx = this.facing * 5; } else { conn.send({ type: 'zombie_hit', id: z.id, dmg: dmgToZombies, sourceX: this.x }); }
                         }
                     });
                 }
@@ -449,16 +440,13 @@ const player = {
         if (this.vy >= 0 && !keys.s) { map.platforms.forEach(plat => { let prevY = this.y - this.vy; if (prevY + this.h <= plat.y + 1 && this.y + this.h >= plat.y) { if (this.x + this.w > plat.x && this.x < plat.x + plat.w) { this.y = plat.y - this.h; this.vy = 0; this.isGrounded = true; this.canDJ = true; } } }); }
         if(this.y + this.h >= map.floor) { this.y = map.floor - this.h; this.vy = 0; this.isGrounded = true; this.canDJ = true; }
         
-        // Take Damage (PVP)
         if(!isCoop && otherPlayer.attackT > 8 && this.invincible <= 0) {
             let oppAb = { w: 85, h: 80 }; let incomingDmg = otherPlayer.charClass === 'mage' ? 0.5 : 1;
-            if (otherPlayer.attackD === 'thrust') {
-                oppAb.w = 180; oppAb.h = 30; oppAb.x = otherPlayer.facing === 1 ? otherPlayer.x + 30 : otherPlayer.x - 180; oppAb.y = otherPlayer.y + 5; incomingDmg = 2;
-            } else if(otherPlayer.attackD === 'up'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y-70; } else if(otherPlayer.attackD === 'down'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y+otherPlayer.h-10; } else { oppAb.x = otherPlayer.facing === 1 ? otherPlayer.x + 30 : otherPlayer.x - 85; oppAb.y = otherPlayer.y - 20; }
+            if (otherPlayer.attackD === 'thrust') { oppAb.w = 180; oppAb.h = 30; oppAb.x = otherPlayer.facing === 1 ? otherPlayer.x + 30 : otherPlayer.x - 180; oppAb.y = otherPlayer.y + 5; incomingDmg = 2; } 
+            else if(otherPlayer.attackD === 'up'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y-70; } else if(otherPlayer.attackD === 'down'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y+otherPlayer.h-10; } else { oppAb.x = otherPlayer.facing === 1 ? otherPlayer.x + 30 : otherPlayer.x - 85; oppAb.y = otherPlayer.y - 20; }
             if(checkRectOverlap(this, oppAb)) { this.takeDamage(incomingDmg, otherPlayer.x); }
         }
 
-        // Take Damage (Co-op Zombies & Boss Spells)
         if(isCoop && this.invincible <= 0) { 
             zombies.forEach(z => { if (checkRectOverlap(this, z)) { this.takeDamage(z.isBoss?2:1, z.x); } }); 
             if (coopState.bossSpells) {
@@ -510,7 +498,6 @@ const player = {
 
         if(this.attackT > 8 && this.hp > 0) {
             ctx.save(); ctx.translate(this.x+15, this.y+22); if(this.facing === -1 && this.attackD !== 'up' && this.attackD !== 'down') ctx.scale(-1, 1);
-            
             if (this.attackD === 'thrust') {
                 ctx.shadowColor = '#fff'; ctx.shadowBlur = 10; ctx.fillStyle = '#ddd';
                 ctx.beginPath(); ctx.moveTo(15, -2); ctx.lineTo(160, -2); ctx.lineTo(180, 0); ctx.lineTo(160, 2); ctx.lineTo(15, 2); ctx.fill();
@@ -541,14 +528,15 @@ function update() {
         // Trigger Boss Every 20 Kills
         if (coopState.kills > 0 && coopState.kills % 20 === 0 && !coopState.bossActive) {
             zombies = []; // Clear field
+            // Boss 出现：高度修复为 320，使得中心在 385，底边在 450 左右，玩家完全可以跳劈砍到
             zombies.push({
                 id: 'boss_' + coopState.wave, isBoss: true,
-                x: canvas.width/2, y: 150, w: 60, h: 80,
+                x: canvas.width/2 - 45, y: 320, baseY: 320, w: 90, h: 130,
                 hp: 2000 + coopState.wave * 100, maxHp: 2000 + coopState.wave * 100, 
                 vx: 0, vy: 0, facing: 1, isGrounded: false, attackTimer: 100
             });
             coopState.bossActive = true;
-            showWarning("⚠️ INFECTED HEADMASTER HAS AWOKEN ⚠️", 4000);
+            showWarning("⚠️ SUPREME HEADMASTER HAS AWOKEN ⚠️", 4000);
         }
 
         if (!coopState.bossActive) {
@@ -580,22 +568,22 @@ function update() {
             let target = (p1Dist !== 9999 || p2Dist !== 9999) ? (p1Dist < p2Dist ? player : otherPlayer) : null;
 
             if (z.isBoss) {
-                // Boss Hover Behavior
-                z.y += Math.sin(Date.now() / 400) * 1.5; 
+                // Boss Hover Behavior (修复之前向上飘的BUG)
+                z.y = z.baseY + Math.sin(Date.now() / 400) * 30;
+                if (target) z.facing = target.x < z.x ? -1 : 1;
                 
                 // Boss Attack AI (Test Papers)
                 z.attackTimer--;
                 if (z.attackTimer <= 0) {
-                    z.attackTimer = 100 - Math.min(40, coopState.wave * 2); // gets faster
+                    z.attackTimer = 120 - Math.min(60, coopState.wave * 3); // gets faster
                     if (target) {
-                        let angle = Math.atan2((target.y+20) - (z.y+40), target.x - (z.x+30));
+                        let angle = Math.atan2((target.y+20) - (z.y+60), target.x - (z.x+45));
                         for(let k=-1; k<=1; k++) {
-                            coopState.bossSpells.push({x: z.x+30, y: z.y+40, vx: Math.cos(angle + k*0.25)*7, vy: Math.sin(angle + k*0.25)*7, life: 180});
+                            coopState.bossSpells.push({x: z.x+45, y: z.y+60, vx: Math.cos(angle + k*0.25)*7, vy: Math.sin(angle + k*0.25)*7, life: 180});
                         }
                     }
                 }
             } else {
-                // Normal Zombie AI
                 z.vy += 0.7; z.x += z.vx; z.y += z.vy; z.isGrounded = false;
                 map.platforms.forEach(plat => { let prevY = z.y - z.vy; if (prevY + z.h <= plat.y + 1 && z.y + z.h >= plat.y) { if (z.x + z.w > plat.x && z.x < plat.x + plat.w) { z.y = plat.y - z.h; z.vy = 0; z.isGrounded = true; } } });
                 if (z.y + z.h > map.floor) { z.y = map.floor - z.h; z.vy = 0; z.isGrounded = true; }
@@ -678,30 +666,70 @@ function draw() {
         zombies.forEach(z => {
             ctx.save(); ctx.translate(z.x + z.w/2, z.y + z.h/2);
             if (z.isBoss) {
-                // Supreme Headmaster Boss Drawing 
-                ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 40; ctx.fillStyle = '#fff';
-                ctx.beginPath(); ctx.moveTo(0, -z.h/2 + 30); ctx.lineTo(z.w/2, z.h/2); ctx.lineTo(-z.w/2, z.h/2); ctx.fill();
-                ctx.fillStyle = '#222'; // Academic Cap
-                ctx.beginPath(); ctx.moveTo(0, -z.h/2 - 15); ctx.lineTo(40, -z.h/2 + 5); ctx.lineTo(0, -z.h/2 + 25); ctx.lineTo(-40, -z.h/2 + 5); ctx.fill();
-                ctx.fillStyle = '#ffd700'; ctx.shadowBlur = 15; ctx.fillRect(-15, -z.h/2 + 35, 10, 5); ctx.fillRect(5, -z.h/2 + 35, 10, 5); // Eyes
+                // 美化版：无上校长 Boss
+                ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 15;
+                
+                // 黑蓝色法袍
+                ctx.fillStyle = '#0f1724';
+                ctx.beginPath(); ctx.moveTo(-z.w/2, z.h/2); ctx.quadraticCurveTo(0, z.h/2 + 20, z.w/2, z.h/2); ctx.lineTo(z.w/2.5, -z.h/4); ctx.lineTo(-z.w/2.5, -z.h/4); ctx.fill();
+                
+                // 发光青色符文
+                ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(-z.w/4, z.h/2 - 10); ctx.lineTo(0, z.h/4); ctx.lineTo(z.w/4, z.h/2 - 10); ctx.stroke();
+                
+                // 肩甲
+                ctx.fillStyle = '#1c2838'; ctx.shadowBlur = 5;
+                ctx.beginPath(); ctx.ellipse(0, -z.h/4 + 10, z.w/2 + 15, 15, 0, 0, Math.PI*2); ctx.fill();
+                
+                // 虚空头部
+                ctx.fillStyle = '#050505'; ctx.shadowBlur = 0;
+                ctx.beginPath(); ctx.arc(0, -z.h/4 - 15, 28, 0, Math.PI*2); ctx.fill();
+                
+                // 青色发光双眼
+                ctx.fillStyle = '#00e5ff'; ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 20;
+                let eyeOffset = z.facing === 1 ? 5 : -5;
+                ctx.beginPath(); ctx.ellipse(-12 + eyeOffset, -z.h/4 - 15, 6, 12, -0.2, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(8 + eyeOffset, -z.h/4 - 15, 6, 12, 0.2, 0, Math.PI*2); ctx.fill();
+                
+                // 学士帽
+                ctx.fillStyle = '#111'; ctx.shadowBlur = 10;
+                ctx.beginPath(); ctx.moveTo(0, -z.h/2 - 35); ctx.lineTo(60, -z.h/4 - 40); ctx.lineTo(0, -z.h/4 - 15); ctx.lineTo(-60, -z.h/4 - 40); ctx.fill();
+                ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 2; ctx.stroke();
+                
+                // 流苏
+                ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(0, -z.h/4 - 25); ctx.lineTo(-50, -z.h/4 - 5); ctx.stroke();
+                
+                // 教鞭/法杖
+                ctx.fillStyle = '#443322'; ctx.fillRect(z.facing === 1 ? z.w/2 : -z.w/2 - 5, -z.h/4, 5, 80);
+                ctx.fillStyle = '#00e5ff'; ctx.beginPath(); ctx.arc(z.facing === 1 ? z.w/2 + 2.5 : -z.w/2 - 2.5, -z.h/4, 10, 0, Math.PI*2); ctx.fill();
             } else {
-                // Better Infected Husk Drawing 
-                ctx.fillStyle = '#2a2a2a'; ctx.beginPath(); ctx.ellipse(0, 0, z.w/2, z.h/2, 0, 0, Math.PI*2); ctx.fill();
+                // 美化版：感染躯壳
+                ctx.fillStyle = '#1a1a1a'; // 佝偻的身体
+                ctx.beginPath(); ctx.moveTo(-z.w/2, z.h/2); ctx.quadraticCurveTo(-z.w/2, -z.h/2, 0, -z.h/2); ctx.quadraticCurveTo(z.w/2, -z.h/2 + 10, z.w/2, z.h/2); ctx.fill();
+                
+                // 橙色感染脓包
+                let bulgeOffset = z.facing === 1 ? -10 : 10;
                 ctx.fillStyle = '#ff8c00'; ctx.shadowColor = '#ff8c00'; ctx.shadowBlur = 15;
-                ctx.beginPath(); ctx.arc(-5, -10, 6, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(8, 5, 8, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(-8, 12, 5, 0, Math.PI*2); ctx.fill();
-                ctx.shadowBlur = 20; let eyeOffsetX = z.facing === 1 ? 5 : -15; ctx.fillRect(eyeOffsetX, -15, 8, 6); // Eyes
-                ctx.shadowBlur = 0; ctx.fillStyle = '#f00'; ctx.fillRect(-z.w/2, -z.h/2 - 10, z.w * (z.hp / z.maxHp), 4); // Normal HP Bar
+                ctx.beginPath(); ctx.arc(bulgeOffset, -z.h/2 + 5, 18, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#ffaa00'; ctx.beginPath(); ctx.arc(bulgeOffset + 5, -z.h/2, 8, 0, Math.PI*2); ctx.fill();
+                
+                // 橙色发光眼
+                ctx.shadowBlur = 15; let eyeX = z.facing === 1 ? 10 : -10;
+                ctx.fillStyle = '#ff8c00'; ctx.beginPath(); ctx.arc(eyeX, -z.h/4, 6, 0, Math.PI*2); ctx.fill();
+                
+                ctx.shadowBlur = 0; ctx.fillStyle = '#f00'; ctx.fillRect(-z.w/2, -z.h/2 - 20, z.w * (z.hp / z.maxHp), 4);
             }
             ctx.restore();
         });
 
-        // Draw Boss Spells (Test Papers)
+        // 渲染 Boss 弹幕 (飞行的卷子)
         if (coopState.bossSpells) {
             coopState.bossSpells.forEach(s => {
                 ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.life * 0.15);
                 ctx.fillStyle = '#fff'; ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 15;
                 ctx.fillRect(-10, -12, 20, 24); 
-                ctx.fillStyle = '#000'; ctx.shadowBlur = 0;
+                ctx.fillStyle = '#000'; ctx.shadowBlur = 0; // 试卷上的文字
                 ctx.fillRect(-6, -6, 12, 2); ctx.fillRect(-6, 0, 12, 2); ctx.fillRect(-6, 6, 8, 2);
                 ctx.restore();
             });
@@ -711,6 +739,7 @@ function draw() {
     projectiles.forEach(p => { 
         let spellColor = getSkinColors(p.skin, false).spell;
         ctx.save(); ctx.translate(p.x + p.w/2, p.y + p.h/2); if(p.facing === -1) ctx.scale(-1, 1); 
+        
         if (p.spellType === 'blackgold') {
             ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 25; let pGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, p.w); 
             pGrad.addColorStop(0, '#000000'); pGrad.addColorStop(0.5, '#ffd700'); pGrad.addColorStop(1, 'rgba(0,0,0,0)'); 
@@ -720,6 +749,7 @@ function draw() {
             pGrad.addColorStop(0, '#fff'); pGrad.addColorStop(0.5, spellColor); pGrad.addColorStop(1, 'rgba(0,0,0,0)'); 
             ctx.fillStyle = pGrad; 
         }
+        
         ctx.beginPath(); ctx.moveTo(p.w/2, 0); ctx.quadraticCurveTo(p.w/4, p.h/2, -p.w/2, p.h/4); ctx.lineTo(-p.w/1.2, 0); ctx.lineTo(-p.w/2, -p.h/4); ctx.quadraticCurveTo(p.w/4, -p.h/2, p.w/2, 0); ctx.fill(); 
         ctx.restore(); 
     });
@@ -727,7 +757,7 @@ function draw() {
     
     ctx.restore();
 
-    // Draw Boss HP Overlay (Top layer)
+    // 史诗级 Boss 血条 UI
     if (isCoop && coopState.bossActive) {
         let boss = zombies.find(z => z.isBoss);
         if (boss) {
@@ -736,7 +766,7 @@ function draw() {
             ctx.fillStyle = '#ff0000'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 10;
             ctx.fillRect(canvas.width/2 - 300, 65, 600 * (boss.hp / boss.maxHp), 15);
             ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Segoe UI'; ctx.textAlign = 'center'; 
-            ctx.fillText("SUPREME HEADMASTER: THE UNFORGIVING", canvas.width/2, 58);
+            ctx.fillText("SUPREME HEADMASTER", canvas.width/2, 58);
         }
     }
 }
