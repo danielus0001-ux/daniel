@@ -8,7 +8,7 @@
         body { margin: 0; overflow: hidden; background: #020205; color: white; font-family: 'Segoe UI', Tahoma, sans-serif; }
         canvas { display: block; margin: 0 auto; box-shadow: inset 0 0 150px rgba(0,0,0,1); cursor: crosshair; }
         
-        #lobby { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 10, 20, 0.95); padding: 25px; border: 2px solid #00e5ff; border-radius: 12px; z-index: 100; width: 620px; box-shadow: 0 0 40px rgba(0,229,255,0.3); }
+        #lobby { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 10, 20, 0.95); padding: 25px; border: 2px solid #00e5ff; border-radius: 12px; z-index: 100; width: 660px; box-shadow: 0 0 40px rgba(0,229,255,0.3); }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
         h2 { color: #00e5ff; margin: 0; font-size: 20px; letter-spacing: 1px; text-shadow: 0 0 10px #00e5ff;}
         .btn-small { padding: 4px 10px; background: #111; color: #00e5ff; border: 1px solid #00e5ff; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s;}
@@ -28,14 +28,13 @@
         .server-name { font-size: 14px; font-weight: bold; color: #fff; }
         .server-status { font-size: 12px; color: #aaa; margin-top: 4px; font-weight: bold; }
         .server-actions button { padding: 6px 12px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 12px; margin-left: 5px; border-radius: 3px; }
-        .btn-host { background: #00e5ff; color: #000; }
-        .btn-host:hover { background: #fff; box-shadow: 0 0 10px #00e5ff; }
-        .btn-join { background: #ff3333; color: #fff; }
-        .btn-join:hover { background: #fff; color: #ff3333; box-shadow: 0 0 10px #ff3333; }
-        .btn-coop { background: #ff8c00; color: #000; }
-        .btn-coop:hover { background: #fff; box-shadow: 0 0 10px #ff8c00; }
+        
+        .btn-host { background: #00e5ff; color: #000; } .btn-host:hover { background: #fff; box-shadow: 0 0 10px #00e5ff; }
+        .btn-join { background: #ff3333; color: #fff; } .btn-join:hover { background: #fff; color: #ff3333; box-shadow: 0 0 10px #ff3333; }
+        .btn-coop { background: #ff8c00; color: #000; } .btn-coop:hover { background: #fff; box-shadow: 0 0 10px #ff8c00; }
+        .btn-disaster { background: #9400d3; color: #fff; } .btn-disaster:hover { background: #fff; color: #9400d3; box-shadow: 0 0 15px #9400d3; }
+        
         #conn-status { font-size: 13px; color: #aaa; margin-top: 15px; text-align: center; }
-
         #leaderboard-modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15, 15, 25, 0.98); padding: 25px; border: 2px solid #ffd700; border-radius: 12px; z-index: 200; width: 400px; box-shadow: 0 0 40px rgba(255,215,0,0.3); }
         .lb-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 10px; }
         .lb-header h3 { color: #ffd700; margin: 0; }
@@ -55,6 +54,14 @@
         #coop-ui { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); text-align: center; display: none; z-index: 9; }
         .wave-text { font-size: 28px; color: #ff8c00; font-weight: bold; text-shadow: 0 0 15px #ff8c00; letter-spacing: 2px; margin-bottom: -5px;}
         .kills-text { font-size: 16px; color: #fff; text-shadow: 0 0 5px #000; font-weight: bold;}
+        
+        #disaster-ui { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); text-align: center; display: none; z-index: 9; background: rgba(0,0,0,0.7); padding: 10px 20px; border-radius: 8px; border: 1px solid #9400d3;}
+        .d-title { font-size: 24px; color: #9400d3; font-weight: bold; text-shadow: 0 0 10px #9400d3;}
+        .d-timer { font-size: 18px; color: #fff;}
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #111; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -108,37 +115,34 @@
         <div class="kills-text">Infected Killed: <span id="coop-kills">0</span></div>
     </div>
 
+    <div id="disaster-ui">
+        <div class="d-title" id="d-title">PREPARING...</div>
+        <div class="d-timer">Next Event: <span id="d-time">30</span>s | Alive: <span id="d-alive">0</span>s</div>
+    </div>
+
     <div id="ui">
         <div style="display:flex; justify-content: space-between;">
             <div class="player-hud">
                 <img id="ui-my-avatar" class="hud-avatar" src="" style="border-color:#00e5ff;">
                 <div>
-                    <div style="margin-bottom: 3px;">
-                        <span id="my-name-label" style="color:#00e5ff; font-weight:bold; font-size:18px; margin-right: 8px;">You</span>
-                        <span style="font-size:12px; color:#aaa;">HP: <span id="player-hp">25</span>/25 | Soul: <span id="player-soul">0</span>/99</span>
-                    </div>
+                    <div style="margin-bottom: 3px;"><span id="my-name-label" style="color:#00e5ff; font-weight:bold; font-size:18px; margin-right: 8px;">You</span><span style="font-size:12px; color:#aaa;">HP: <span id="player-hp">25</span>/25 | Soul: <span id="player-soul">0</span>/99</span></div>
                     <div class="bar-bg"><div class="hp-fill" id="hp-bar" style="width: 100%;"></div></div>
                     <div class="bar-bg" style="height:8px; margin-top:2px;"><div class="soul-fill" id="soul-bar" style="width: 0%;"></div></div>
                 </div>
             </div>
-
             <div class="player-hud" style="flex-direction: row-reverse; text-align: right;">
                 <img id="ui-opp-avatar" class="hud-avatar" src="" style="border-color:#ff3333;">
                 <div>
-                    <div style="margin-bottom: 3px;">
-                        <span style="font-size:12px; color:#aaa; margin-right: 8px;">HP: <span id="opp-hp-val">25</span>/25</span>
-                        <span id="opp-name-label" style="color:#ff3333; font-weight:bold; font-size:18px;">Enemy</span>
-                    </div>
+                    <div style="margin-bottom: 3px;"><span style="font-size:12px; color:#aaa; margin-right: 8px;">HP: <span id="opp-hp-val">25</span>/25</span><span id="opp-name-label" style="color:#ff3333; font-weight:bold; font-size:18px;">Enemy</span></div>
                     <div class="bar-bg"><div class="hp-fill" id="opp-hp-bar" style="width: 100%; background: #ff3333; float:right;"></div></div>
                 </div>
             </div>
         </div>
-        
         <div class="instruction">
             [A/D] Move | [W/Space] Jump | <b style="color:#fff; border-bottom:1px dotted #fff;">[L] Dash</b><br>
             [J] Slash | [W+J] Up Slash | [S+J] Down Slash<br>
-            <b style="color:#00e5ff">[K] Spell/Skill</b> | <b>[Hold F] Heal</b><br>
-            <span style="color:#666">[Hold S] Drop platforms</span>
+            <b style="color:#00e5ff">[K] Skill</b> | <b>[Hold F] Heal</b><br>
+            <span style="color:#aaa">Physics: Momentum & Coyote Time Active</span>
         </div>
     </div>
 
@@ -165,7 +169,7 @@ document.getElementById('class-choice').addEventListener('change', (e) => localS
 
 function handleAvatarUpload(event) {
     const file = event.target.files[0];
-    if (!file || !file.type.startsWith('image/')) { alert("请上传照片格式！"); return; }
+    if (!file || !file.type.startsWith('image/')) return;
     const reader = new FileReader();
     reader.onload = function(e) {
         const img = new Image();
@@ -185,7 +189,7 @@ function handleAvatarUpload(event) {
 
 function showLeaderboard() {
     const content = document.getElementById('lb-content'); content.innerHTML = '';
-    if (matchHistory.length === 0) { content.innerHTML = '<p style="color:#aaa; text-align:center;">还没有击败过对手，快去战斗吧！</p>'; } 
+    if (matchHistory.length === 0) { content.innerHTML = '<p style="color:#aaa; text-align:center;">No records yet!</p>'; } 
     else {
         [...matchHistory].reverse().forEach(record => {
             content.innerHTML += `<div class="lb-row"><img src="${record.avatar}" class="lb-avatar"><div><div style="color:#fff; font-weight:bold;">Defeated: <span style="color:#ff3333">${record.name}</span></div><div style="font-size:11px; color:#aaa;">Date: ${record.date} | Class: ${record.charClass||'vessel'}</div></div></div>`;
@@ -204,20 +208,21 @@ function getSkinColors(skinStr, isDash) {
     }
 }
 
-// Exactly 5 Rooms: 3 PVP, 2 CO-OP
+// 6 Rooms: 3 PVP, 2 CO-OP, 1 DISASTER
 const arenas = [
-    { id: 'arena1', name: "The Crossroads", type: "(PVP Flat)" }, 
-    { id: 'arena2', name: "Greenpath", type: "(PVP Platforms)" },
-    { id: 'arena3', name: "City of Tears", type: "(PVP High)" },
-    { id: 'coop1', name: "Infected Crossroads", type: "(CO-OP Survival)", isCoop: true },
-    { id: 'coop2', name: "Deepnest Swarm", type: "(CO-OP Survival)", isCoop: true }
+    { id: 'arena1', name: "The Crossroads", type: "(PVP Flat)", mode: 'pvp' }, 
+    { id: 'arena2', name: "Greenpath", type: "(PVP Platforms)", mode: 'pvp' },
+    { id: 'arena3', name: "City of Tears", type: "(PVP High)", mode: 'pvp' },
+    { id: 'coop1', name: "Infected Crossroads", type: "(CO-OP Survival)", mode: 'coop' },
+    { id: 'coop2', name: "Deepnest Swarm", type: "(CO-OP Survival)", mode: 'coop' },
+    { id: 'disaster1', name: "Abandoned City", type: "(Disaster Survival)", mode: 'disaster' }
 ];
 
 const listContainer = document.getElementById('arena-list');
 arenas.forEach(arena => {
-    let btnClass = arena.isCoop ? 'btn-coop' : 'btn-host';
-    let btnLabel = arena.isCoop ? 'Host Co-op' : 'Host PVP';
-    let colorName = arena.isCoop ? '#ff8c00' : '#fff';
+    let btnClass = arena.mode === 'coop' ? 'btn-coop' : (arena.mode === 'disaster' ? 'btn-disaster' : 'btn-host');
+    let btnLabel = arena.mode === 'coop' ? 'Host Co-op' : (arena.mode === 'disaster' ? 'Host Disaster' : 'Host PVP');
+    let colorName = arena.mode === 'coop' ? '#ff8c00' : (arena.mode === 'disaster' ? '#ba55d3' : '#fff');
     listContainer.innerHTML += `
         <div class="server-row">
             <div class="server-info"><div class="server-name" style="color:${colorName}">${arena.name} <span style="font-size:11px; color:#666;">${arena.type}</span></div><div class="server-status" id="status-${arena.id}">Status: Probing...</div></div>
@@ -238,7 +243,7 @@ function initLobbyRadar() {
 }
 function checkRoom(arenaId) {
     return new Promise((resolve) => {
-        let tId = 'nspvp-v21-' + arenaId; 
+        let tId = 'nspvp-v24-' + arenaId; 
         let timeout = setTimeout(() => { if (probeCallbacks[tId]) { probeCallbacks[tId](0); delete probeCallbacks[tId]; } }, 1500);
         probeCallbacks[tId] = (result) => { clearTimeout(timeout); resolve(result); };
         let c = lobbyPeer.connect(tId, { metadata: { type: 'probe' } });
@@ -260,12 +265,12 @@ async function refreshAllRooms() {
 }
 initLobbyRadar();
 
-let peer, conn, isHost = false, gameStarted = false;
-let isCoop = false;
-let zombies = []; let coopState = { wave: 1, kills: 0, spawnTimer: 60, bossActive: false, bossSpells: [] };
-let healthPacks = [];
+let peer, conn, isHost = false, gameStarted = false, gameMode = 'pvp';
+let zombies = [], healthPacks = [], dHazards = []; 
+let coopState = { wave: 1, kills: 0, spawnTimer: 60, bossActive: false, bossSpells: [] };
+let dState = { active: false, current: 0, timer: 1800, timeAlive: 0, types: ['earthquake', 'zombies', 'pvp', 'volcano', 'bugs', 'flood', 'asteroid'], pvpEnabled: false, waterLevel: 2000 };
 
-const map = { floor: 650, walls: [{x: 50, y:-500, w: 20, h:1500}, {x: 1400, y:-500, w: 20, h:1500}], platforms: [], themeColor: '#11151c', platColor: '#444' };
+const map = { floor: 650, walls: [{x: 50, y:-1000, w: 20, h:2000}, {x: 1400, y:-1000, w: 20, h:2000}], platforms: [], themeColor: '#11151c', platColor: '#444' };
 
 function loadMap(arenaId) {
     map.platforms = [];
@@ -273,6 +278,10 @@ function loadMap(arenaId) {
     else if (arenaId === 'arena2' || arenaId === 'coop2') { map.platforms = [{x: 250, y: 500, w: 250, h: 20}, {x: 950, y: 500, w: 250, h: 20}]; map.themeColor = '#0a1a11'; map.platColor = '#1e3b26'; } 
     else if (arenaId === 'arena3') { map.platforms = [{x: 600, y: 400, w: 250, h: 20}, {x: 200, y: 520, w: 200, h: 20}, {x: 1050, y: 520, w: 200, h: 20}]; map.themeColor = '#10152b'; map.platColor = '#2a3b66'; } 
     else if (arenaId === 'coop1') { map.themeColor = '#1f1308'; map.platColor = '#3a2410'; } 
+    else if (arenaId === 'disaster1') { 
+        map.platforms = [{x: 300, y: 500, w: 200, h: 20}, {x: 650, y: 400, w: 200, h: 20}, {x: 1000, y: 500, w: 200, h: 20}]; 
+        map.themeColor = '#1a1815'; map.platColor = '#4a4036';
+    }
 }
 
 function initMultiplayer(role, arenaId) {
@@ -280,17 +289,17 @@ function initMultiplayer(role, arenaId) {
     document.getElementById('btn-refresh').disabled = true;
     document.getElementById('conn-status').innerText = "Connecting to relay servers...";
 
-    isCoop = arenaId.startsWith('coop');
+    gameMode = arenas.find(a => a.id === arenaId).mode;
     player.name = document.getElementById('username-input').value || 'Knight';
     player.skin = document.getElementById('skin-choice').value;
     player.charClass = document.getElementById('class-choice').value;
     player.avatar = savedAvatar;
 
     if (lobbyPeer) { lobbyPeer.destroy(); lobbyPeer = null; }
-    loadMap(arenaId); const globalId = 'nspvp-v21-' + arenaId; if(peer) peer.destroy();
+    loadMap(arenaId); const globalId = 'nspvp-v24-' + arenaId; if(peer) peer.destroy();
 
     peer = new Peer(role === 'host' ? globalId : null, { config: { 'iceServers': [ { urls: 'stun:stun.l.google.com:19302' } ] } });
-    peer.on('open', () => { if(role === 'host') { isHost = true; document.getElementById('conn-status').innerText = `Hosting! Waiting for ally/opponent...`; } else { connectToHost(globalId); } });
+    peer.on('open', () => { if(role === 'host') { isHost = true; document.getElementById('conn-status').innerText = `Hosting! Waiting for opponent...`; } else { connectToHost(globalId); } });
 
     peer.on('connection', (c) => {
         if (c.metadata && c.metadata.type === 'probe') { c.on('open', () => { c.send({ type: 'probe_reply', players: (conn && conn.open) ? 2 : 1 }); setTimeout(() => c.close(), 200); }); return; }
@@ -306,11 +315,14 @@ function setupDataHandlers() {
     conn.on('open', () => {
         document.getElementById('lobby').style.display = 'none'; document.getElementById('ui').style.display = 'block'; gameStarted = true;
         
-        if (isCoop) {
+        if (gameMode === 'coop') {
             document.getElementById('coop-ui').style.display = 'block';
             document.getElementById('ui-opp-avatar').style.borderColor = '#00e5ff';
             document.getElementById('opp-name-label').style.color = '#00e5ff';
             document.getElementById('opp-hp-bar').style.background = '#00e5ff';
+        } else if (gameMode === 'disaster') {
+            document.getElementById('disaster-ui').style.display = 'block';
+            if (isHost) dState.active = true;
         }
 
         if(isHost) { player.x = 200; player.y = 100; player.facing = 1; } else { player.x = 1200; player.y = 100; player.facing = -1; }
@@ -319,7 +331,10 @@ function setupDataHandlers() {
         document.getElementById('my-name-label').innerText = player.name + (player.charClass==='knight'?' 🛡️':(player.charClass==='mage'?' 🔮':''));
         document.getElementById('ui-my-avatar').src = player.avatar;
         
-        showWarning(isCoop ? "<b style='color:#ff8c00'>SURVIVE THE SWARM</b>" : "<b style='color:#00e5ff'>FIGHT!</b>", 3000);
+        let msg = "<b style='color:#00e5ff'>FIGHT!</b>";
+        if(gameMode === 'coop') msg = "<b style='color:#ff8c00'>SURVIVE THE SWARM</b>";
+        if(gameMode === 'disaster') msg = "<b style='color:#ba55d3'>SURVIVE THE DISASTERS</b>";
+        showWarning(msg, 3000);
     });
 
     conn.on('data', (data) => {
@@ -327,7 +342,7 @@ function setupDataHandlers() {
         if(data.type === 'profile_sync') {
             otherPlayer.name = data.name; otherPlayer.skin = data.skin; otherPlayer.charClass = data.charClass || 'vessel';
             otherPlayer.avatar = data.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23555'/><text x='50' y='50' font-family='Arial' font-size='40' fill='%23fff' text-anchor='middle' dominant-baseline='central'>?</text></svg>";
-            document.getElementById('opp-name-label').innerText = otherPlayer.name + (isCoop ? " (Ally)" : "");
+            document.getElementById('opp-name-label').innerText = otherPlayer.name + (gameMode !== 'pvp' ? " (Ally)" : "");
             document.getElementById('ui-opp-avatar').src = otherPlayer.avatar;
             return; 
         }
@@ -338,7 +353,6 @@ function setupDataHandlers() {
             if(idx !== -1) { spawnParticles(healthPacks[idx].x+10, healthPacks[idx].y+10, '#00ff00', 20, 5); healthPacks.splice(idx, 1); }
             return; 
         }
-
         if (data.type === 'zombie_hit' && isHost) { let z = zombies.find(z => z.id === data.id); if (z) { z.hp -= data.dmg; z.vx = z.x > data.sourceX ? 15 : -15; } return; }
 
         otherPlayer.x = data.x; otherPlayer.y = data.y; otherPlayer.hp = data.hp;
@@ -347,13 +361,18 @@ function setupDataHandlers() {
         otherPlayer.isFocus = data.isFocus; otherPlayer.vx = data.vx;
         if(data.spawnSpell) projectiles.push({ x: data.spellX, y: data.spellY, vx: data.spellVX, w: 90, h: 55, life: 100, facing: data.facing, isFromOpp: true, skin: otherPlayer.skin, spellType: data.spellType });
         
-        if (isCoop && !isHost && data.zombies) {
-            zombies = data.zombies; coopState = data.coopState;
-            document.getElementById('coop-wave').innerText = coopState.wave; document.getElementById('coop-kills').innerText = coopState.kills;
+        if (!isHost) {
+            if (data.zombies) zombies = data.zombies; 
+            if (data.coopState) { coopState = data.coopState; document.getElementById('coop-wave').innerText = coopState.wave; document.getElementById('coop-kills').innerText = coopState.kills; }
+            if (data.dState) { 
+                dState = data.dState; dHazards = data.dHazards;
+                document.getElementById('d-time').innerText = Math.ceil(dState.timer/60);
+                document.getElementById('d-alive').innerText = Math.floor(dState.timeAlive/60);
+                document.getElementById('d-title').innerText = dState.types[dState.current].toUpperCase();
+            }
         }
     });
-
-    conn.on('close', () => { if (!gameOver) { alert(isCoop ? "Your ally left you to die..." : "Opponent disconnected."); location.reload(); } });
+    conn.on('close', () => { if (!gameOver) { alert("Connection lost."); location.reload(); } });
 }
 
 let localSpawnSpell = false, localSpellType = 'normal';
@@ -365,7 +384,10 @@ function syncData() {
             spellX: player.facing === 1 ? player.x + player.w : player.x - 90, spellY: player.y - 25, 
             spellVX: (player.charClass==='mage') ? player.facing*19.8 : player.facing*18
         };
-        if (isCoop && isHost) { packet.zombies = zombies; packet.coopState = coopState; }
+        if (isHost) {
+            if (gameMode==='coop') { packet.zombies = zombies; packet.coopState = coopState; }
+            if (gameMode==='disaster') { packet.dState = dState; packet.dHazards = dHazards; packet.zombies = zombies; }
+        }
         conn.send(packet); localSpawnSpell = false; 
     }
 }
@@ -378,14 +400,13 @@ window.addEventListener('keyup', e => { let k = e.key.toLowerCase(); if(keys.has
 function spawnParticles(x, y, color, count, speed) { for(let i=0; i<count; i++) particles.push({ x, y, vx: (Math.random()-0.5)*speed, vy: (Math.random()-0.5)*speed - 2, life: 1.0, color, size: Math.random()*3+2 }); }
 function checkRectOverlap(r1, r2) { return r1 && r2 && r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y < r2.y + r2.h && r1.y + r1.h > r2.y; }
 
-// --- 物理碰撞分离算法 ---
 function resolvePhysics(a, b, weightA = 0.5, weightB = 0.5) {
     if (!a || !b || a.hp <= 0 || b.hp <= 0 || a.isDash || b.isDash) return;
     if (checkRectOverlap(a, b)) {
         let cxA = a.x + a.w/2; let cxB = b.x + b.w/2;
         let overlap = (a.w/2 + b.w/2) - Math.abs(cxA - cxB);
         if (overlap > 0) {
-            let push = Math.min(overlap, 4); // Max push per frame to avoid jitter
+            let push = Math.min(overlap, 4); 
             if (cxA > cxB) { a.x += push * weightA; b.x -= push * weightB; }
             else { a.x -= push * weightA; b.x += push * weightB; }
         }
@@ -393,34 +414,62 @@ function resolvePhysics(a, b, weightA = 0.5, weightB = 0.5) {
 }
 
 const player = {
-    x: 200, y: 500, w: 30, h: 45, vx: 0, vy: 0, speed: 7, jumpPower: -14, gravity: 0.7, facing: 1, hp: 25, maxHp: 25, soul: 0,
-    isGrounded: false, canDJ: true, invincible: 0, isDash: false, dashD: 0, dashC: 0, attackT: 0, attackD: 'fw', isFocus: false, focusT: 0,
+    x: 200, y: 500, w: 30, h: 45, vx: 0, vy: 0, jumpPower: -15, gravity: 0.8, facing: 1, hp: 25, maxHp: 25, soul: 0,
+    isGrounded: false, coyote: 0, jumpBuf: 0, canDJ: true, invincible: 0, isDash: false, dashD: 0, dashC: 0, attackT: 0, attackD: 'fw', isFocus: false, focusT: 0,
     name: 'Knight', skin: 'original', charClass: 'vessel',
 
     update() {
-        if(this.hp <= 0 && isCoop) { this.vx = 0; this.vy += this.gravity; this.y += this.vy; if(this.y + this.h >= map.floor) { this.y = map.floor - this.h; this.vy = 0; } return; } 
+        if(this.hp <= 0 && gameMode !== 'pvp') { this.vx = 0; this.vy += this.gravity; this.y += this.vy; if(this.y + this.h >= map.floor) { this.y = map.floor - this.h; this.vy = 0; } return; } 
         if(this.hp <= 0 || gameOver) return;
         
         let jp = (keys.w || keys.space) && !(prevKeys.w || prevKeys.space); let ap = keys.j && !prevKeys.j; let sp = keys.k && !prevKeys.k; let dp = keys.l && !prevKeys.l;
         let isKnight = this.charClass === 'knight'; let isMage = this.charClass === 'mage';
         let dashMaxCD = isKnight ? 90 : 45; 
 
-        if(keys.f && this.isGrounded && this.hp < this.maxHp && this.soul >= 33 && !this.isDash) {
-            this.isFocus = true; this.vx = 0; this.focusT++;
+        // Physics parameters (dynamic based on environment)
+        let inWater = (gameMode === 'disaster' && dState.types[dState.current] === 'flood' && this.y > dState.waterLevel);
+        let currentGrav = inWater ? 0.3 : this.gravity;
+        let acc = this.isGrounded ? 1.5 : 1.0;
+        let fric = this.isGrounded ? 0.75 : 0.85;
+        if (inWater) { acc = 0.5; fric = 0.6; }
+
+        if(keys.f && this.isGrounded && this.hp < this.maxHp && this.soul >= 33 && !this.isDash && !inWater) {
+            this.isFocus = true; this.focusT++; this.vx *= 0.5;
             if(this.focusT >= 60) { this.hp = Math.min(this.maxHp, this.hp + 1); this.soul -= 33; this.focusT = 0; spawnParticles(this.x+15, this.y+20, '#fff', 50, 10); screenShake = 8;}
         } else { this.isFocus = false; this.focusT = 0; }
 
         if(!this.isDash && !this.isFocus) {
-            if(keys.a) { this.vx = -this.speed; this.facing = -1; } else if(keys.d) { this.vx = this.speed; this.facing = 1; } else { this.vx = 0; }
-            if(jp && this.isGrounded) { this.vy = this.jumpPower; this.isGrounded = false; } else if(jp && this.canDJ) { this.vy = this.jumpPower * 0.85; this.canDJ = false; }
+            // Smooth Momentum Movement
+            if(keys.a) { this.vx -= acc; this.facing = -1; } 
+            else if(keys.d) { this.vx += acc; this.facing = 1; }
+            this.vx *= fric;
             
+            let maxS = inWater ? 3 : 7;
+            if (Math.abs(this.vx) > maxS) this.vx = Math.sign(this.vx) * maxS;
+
+            // Coyote & Jump Buffer
+            if (this.isGrounded) this.coyote = 8; else if (this.coyote > 0) this.coyote--;
+            if (jp) this.jumpBuf = 8; else if (this.jumpBuf > 0) this.jumpBuf--;
+
+            if(this.jumpBuf > 0 && this.coyote > 0) { 
+                this.vy = inWater ? this.jumpPower*0.6 : this.jumpPower; 
+                this.isGrounded = false; this.coyote = 0; this.jumpBuf = 0; 
+            } else if(jp && this.canDJ) { 
+                this.vy = inWater ? this.jumpPower*0.5 : this.jumpPower * 0.85; 
+                this.canDJ = false; this.jumpBuf = 0; 
+            }
+
+            // Variable Jump Height
+            if (!keys.w && !keys.space && this.vy < 0) this.vy *= 0.6;
+
             let triggerHitbox = false; let ab = {w:0, h:0, x:0, y:0}; let dmgToZombies = 15;
 
+            // Spells
             if (sp) {
                 if (isKnight && this.soul >= 22 && this.dashC <= 0 && this.attackT <= 0) {
-                    this.soul -= 22; this.attackT = 20; this.attackD = 'thrust'; this.vx = this.facing * 12;
+                    this.soul -= 22; this.attackT = 20; this.attackD = 'thrust'; this.vx = this.facing * 16;
                     ab = { w: 180, h: 30 }; ab.x = this.facing === 1 ? this.x + this.w : this.x - ab.w; ab.y = this.y + 5;
-                    triggerHitbox = true; dmgToZombies = 30;
+                    triggerHitbox = true; dmgToZombies = 30; hitStopFrames = 3;
                 } else if (!isKnight && this.soul >= 33) {
                     this.soul -= 33; localSpawnSpell = true; this.vx = this.facing * -5;
                     localSpellType = isMage ? 'blackgold' : 'normal';
@@ -429,6 +478,7 @@ const player = {
                 }
             }
 
+            // Slash
             if(ap && this.attackT <= 0) {
                 this.attackT = 16; this.attackD = keys.w ? 'up' : (keys.s && !this.isGrounded ? 'down' : 'fw');
                 ab = { w: 85, h: 80 }; if(this.attackD === 'up'){ ab.x=this.x-27; ab.y=this.y-70; } else if(this.attackD === 'down'){ ab.x=this.x-27; ab.y=this.y+this.h-10; } else { ab.x = this.facing === 1 ? this.x + this.w : this.x - ab.w; ab.y = this.y - 20; }
@@ -436,16 +486,17 @@ const player = {
             }
 
             if (triggerHitbox) {
-                if(!isCoop && checkRectOverlap(ab, otherPlayer)) { 
-                    spawnParticles(otherPlayer.x+15, otherPlayer.y+20, '#fff', 15, 8); this.soul = Math.min(99, this.soul + 11); hitStopFrames = 4; screenShake = 10; 
+                let pvpActive = gameMode === 'pvp' || (gameMode === 'disaster' && dState.types[dState.current] === 'pvp');
+                if(pvpActive && checkRectOverlap(ab, otherPlayer)) { 
+                    spawnParticles(otherPlayer.x+15, otherPlayer.y+20, '#fff', 15, 8); this.soul = Math.min(99, this.soul + 11); hitStopFrames = 6; screenShake = 12; 
                     if(this.attackD === 'down') { this.vy = -13; this.canDJ = true; } else if(this.attackD === 'up') { this.vy += 2; } else { this.vx = this.facing * -6; } 
                 }
-                if(isCoop) {
+                if(gameMode !== 'pvp') {
                     zombies.forEach(z => {
                         if(checkRectOverlap(ab, z)) {
-                            spawnParticles(z.x+z.w/2, z.y+z.h/2, '#ff8c00', 15, 8); this.soul = Math.min(99, this.soul + 11); hitStopFrames = 4; screenShake = 8;
+                            spawnParticles(z.x+z.w/2, z.y+z.h/2, '#ff8c00', 15, 8); this.soul = Math.min(99, this.soul + 11); hitStopFrames = 6; screenShake = 8;
                             if(this.attackD === 'down') { this.vy = -13; this.canDJ = true; } else if(this.attackD === 'up') { this.vy += 2; } else { this.vx = this.facing * -6; }
-                            if (isHost) { z.hp -= dmgToZombies; z.vx = this.facing * 5; } else { conn.send({ type: 'zombie_hit', id: z.id, dmg: dmgToZombies, sourceX: this.x }); }
+                            if (isHost) { z.hp -= dmgToZombies; if(!z.isBoss) z.vx = this.facing * 5; } else { conn.send({ type: 'zombie_hit', id: z.id, dmg: dmgToZombies, sourceX: this.x }); }
                         }
                     });
                 }
@@ -453,28 +504,40 @@ const player = {
         }
 
         if(dp && this.dashC <= 0 && !this.isFocus) { this.isDash = true; this.dashD = 14; this.dashC = dashMaxCD; this.vy = 0; this.invincible = 16;}
-        if(this.isDash) { this.vx = this.facing * 20; this.dashD--; if(this.dashD<=0) this.isDash=false; } else { this.vy += this.gravity; }
+        if(this.isDash) { this.vx = this.facing * (inWater?10:20); this.dashD--; if(this.dashD<=0) this.isDash=false; } else { this.vy += currentGrav; }
 
-        this.x += this.vx; this.y += this.vy; this.isGrounded = false;
-        
+        this.x += this.vx; if(this.x < map.walls[0].x + map.walls[0].w) { this.x = map.walls[0].x + map.walls[0].w; this.vx = 0; } if(this.x + this.w > map.walls[1].x) { this.x = map.walls[1].x - this.w; this.vx = 0;}
+        this.y += this.vy; this.isGrounded = false;
+
         if (this.vy >= 0 && !keys.s) { map.platforms.forEach(plat => { let prevY = this.y - this.vy; if (prevY + this.h <= plat.y + 1 && this.y + this.h >= plat.y) { if (this.x + this.w > plat.x && this.x < plat.x + plat.w) { this.y = plat.y - this.h; this.vy = 0; this.isGrounded = true; this.canDJ = true; } } }); }
         if(this.y + this.h >= map.floor) { this.y = map.floor - this.h; this.vy = 0; this.isGrounded = true; this.canDJ = true; }
         
-        if(!isCoop && otherPlayer.attackT > 8 && this.invincible <= 0) {
+        let pvpActive = gameMode === 'pvp' || (gameMode === 'disaster' && dState.types[dState.current] === 'pvp');
+        if(pvpActive && otherPlayer.attackT > 8 && this.invincible <= 0) {
             let oppAb = { w: 85, h: 80 }; let incomingDmg = otherPlayer.charClass === 'mage' ? 0.5 : 1;
             if (otherPlayer.attackD === 'thrust') { oppAb.w = 180; oppAb.h = 30; oppAb.x = otherPlayer.facing === 1 ? otherPlayer.x + 30 : otherPlayer.x - 180; oppAb.y = otherPlayer.y + 5; incomingDmg = 2; } 
             else if(otherPlayer.attackD === 'up'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y-70; } else if(otherPlayer.attackD === 'down'){ oppAb.x=otherPlayer.x-27; oppAb.y=otherPlayer.y+otherPlayer.h-10; } else { oppAb.x = otherPlayer.facing === 1 ? otherPlayer.x + 30 : otherPlayer.x - 85; oppAb.y = otherPlayer.y - 20; }
             if(checkRectOverlap(this, oppAb)) { this.takeDamage(incomingDmg, otherPlayer.x); }
         }
 
-        if(isCoop && this.invincible <= 0) { 
-            zombies.forEach(z => { if (checkRectOverlap(this, z)) { this.takeDamage(z.isBoss?2:1, z.x); } }); 
+        if(gameMode !== 'pvp' && this.invincible <= 0) { 
+            zombies.forEach(z => { if (checkRectOverlap(this, z)) { this.takeDamage(z.isBoss?2:(z.type==='bug'?0.5:1), z.x); } }); 
             if (coopState.bossSpells) {
                 coopState.bossSpells.forEach(s => { 
                     let sRect = {x: s.x, y: s.y, w: s.w||20, h: s.h||24}; 
                     if (checkRectOverlap(this, sRect)) { this.takeDamage(s.type==='homework'?3:2, s.x); } 
                 });
             }
+        }
+        
+        // Disaster Env Damage
+        if(gameMode === 'disaster' && this.invincible <= 0) {
+            let type = dState.types[dState.current];
+            if (type === 'volcano' && this.y + this.h >= dState.waterLevel) this.takeDamage(2); // Lava
+            if (type === 'flood' && inWater && Math.random() < 0.05) this.takeDamage(0.5); // Drowning
+            dHazards.forEach(h => {
+                if(checkRectOverlap(this, h)) this.takeDamage(h.type==='meteor'?4:1, h.x);
+            });
         }
 
         if(this.invincible > 0) this.invincible--; if(this.attackT > 0) this.attackT--; if(this.dashC > 0) this.dashC--;
@@ -488,15 +551,20 @@ const player = {
         if(this.invincible > 0) return;
         this.hp -= dmg; this.invincible = 40; screenShake = 15; this.isFocus = false;
         if(sourceX !== undefined) this.vx = this.x > sourceX ? 12 : -12; this.vy = -8;
-        spawnParticles(this.x+15, this.y+20, '#ff3333', 20, 10);
+        spawnParticles(this.x+15, this.y+20, '#ff3333', 20, 10); hitStopFrames = 6;
         
         if(this.hp <= 0 && !gameOver) {
-            if (!isCoop) {
+            if (gameMode === 'pvp') {
                 showWarning("<b style='color:#ff3333'>YOU DIED</b><br><span style='font-size:20px; color:#aaa'>Returning to lobby...</span>", 3000); 
                 gameOver = true; setTimeout(() => location.reload(), 3000);
-            } else {
+            } else if (gameMode === 'coop') {
                 if (otherPlayer.hp <= 0) {
                     showWarning("<b style='color:#ff3333'>THE SWARM CONSUMED YOU</b><br><span style='font-size:20px; color:#fff'>Total Kills: " + coopState.kills + "</span>", 5000);
+                    gameOver = true; setTimeout(() => location.reload(), 5000);
+                } else { spawnParticles(this.x+15, this.y+20, '#fff', 50, 10); } 
+            } else if (gameMode === 'disaster') {
+                if (otherPlayer.hp <= 0) {
+                    showWarning("<b style='color:#ff3333'>EXTINCTION</b><br><span style='font-size:20px; color:#fff'>You survived: " + Math.floor(dState.timeAlive/60) + "s</span>", 5000);
                     gameOver = true; setTimeout(() => location.reload(), 5000);
                 } else { spawnParticles(this.x+15, this.y+20, '#fff', 50, 10); } 
             }
@@ -504,7 +572,7 @@ const player = {
     },
 
     draw(isMe) {
-        if (this.hp <= 0 && isCoop) { ctx.globalAlpha = 0.3; } 
+        if (this.hp <= 0 && gameMode !== 'pvp') { ctx.globalAlpha = 0.3; } 
         else if (this.invincible > 0 && Math.floor(Date.now()/100)%2===0 && !this.isDash) { return; }
 
         let colors = getSkinColors(this.skin, this.isDash);
@@ -521,7 +589,6 @@ const player = {
 
         if(this.attackT > 8 && this.hp > 0) {
             ctx.save(); ctx.translate(this.x+15, this.y+22); if(this.facing === -1 && this.attackD !== 'up' && this.attackD !== 'down') ctx.scale(-1, 1);
-            
             if (this.attackD === 'thrust') {
                 ctx.shadowColor = '#fff'; ctx.shadowBlur = 10; ctx.fillStyle = '#ddd';
                 ctx.beginPath(); ctx.moveTo(15, -2); ctx.lineTo(160, -2); ctx.lineTo(180, 0); ctx.lineTo(160, 2); ctx.lineTo(15, 2); ctx.fill();
@@ -545,9 +612,9 @@ function update() {
     if(!gameStarted) return;
     if(hitStopFrames > 0) { hitStopFrames--; return; }
     
-    // --- 物理碰撞处理 (实体分离) ---
+    // --- Physics Collision Resolution ---
     if (player.hp > 0 && otherPlayer.hp > 0) resolvePhysics(player, otherPlayer, 0.5, 0.5);
-    if (isCoop) {
+    if (gameMode !== 'pvp') {
         zombies.forEach((z, i) => {
             if (z.hp > 0) {
                 let zW = z.isBoss ? 0 : 0.8; let pW = z.isBoss ? 1.0 : 0.2;
@@ -565,36 +632,80 @@ function update() {
             }
         });
     }
-    // 限制地图边界
-    let clampB = (ent) => { if(ent && ent.hp>0) { if(ent.x < map.walls[0].x+map.walls[0].w) ent.x = map.walls[0].x+map.walls[0].w; if(ent.x+ent.w > map.walls[1].x) ent.x = map.walls[1].x-ent.w; } };
-    clampB(player); if(isHost && isCoop) zombies.forEach(clampB);
 
     if (isHost && !gameOver) {
+        // Global Health Packs
         if (Math.random() < 0.002) { 
             let pack = { id: Math.random().toString(), x: Math.random() * (map.walls[1].x - map.walls[0].x - 60) + map.walls[0].x + 30, y: -50, w: 20, h: 20, vy: 0, life: 600 };
-            healthPacks.push(pack);
-            if (conn && conn.open) conn.send({ type: 'spawn_pack', pack: pack });
+            healthPacks.push(pack); if (conn && conn.open) conn.send({ type: 'spawn_pack', pack: pack });
         }
 
-        if (isCoop) {
-            if (!coopState.bossSpells) coopState.bossSpells = [];
-            if (coopState.kills > 0 && coopState.kills % 20 === 0 && !coopState.bossActive) {
-                zombies = []; 
-                zombies.push({
-                    id: 'boss_' + coopState.wave, isBoss: true, phase: 1, isDashing: false,
-                    x: canvas.width/2 - 45, y: 320, baseY: 320, w: 90, h: 130,
-                    hp: 2000 + coopState.wave * 100, maxHp: 2000 + coopState.wave * 100, 
-                    vx: 0, vy: 0, facing: 1, isGrounded: false, attackTimer: 100
-                });
-                coopState.bossActive = true;
-                showWarning("⚠️ SUPREME HEADMASTER HAS AWOKEN ⚠️", 4000);
+        // --- DISASTER MODE LOGIC ---
+        if (gameMode === 'disaster' && dState.active) {
+            dState.timeAlive++; dState.timer--;
+            let type = dState.types[dState.current];
+
+            if (dState.timer <= 0) {
+                dState.current = (dState.current + 1) % dState.types.length; dState.timer = 1800; dHazards = []; zombies = [];
+                dState.waterLevel = 2000; screenShake = 20;
+                showWarning("⚠️ " + dState.types[dState.current].toUpperCase() + " ⚠️", 3000);
+                document.getElementById('d-title').innerText = dState.types[dState.current].toUpperCase();
             }
 
-            if (!coopState.bossActive) {
-                coopState.spawnTimer--; let maxZombies = 5 + coopState.wave * 2;
-                if (coopState.spawnTimer <= 0 && zombies.length < maxZombies) {
-                    zombies.push({ id: Math.random().toString(), x: Math.random() > 0.5 ? 80 : 1320, y: 100, w: 35, h: 50, hp: 20 + coopState.wave * 10, maxHp: 20 + coopState.wave * 10, vx: 0, vy: 0, facing: 1, isGrounded: false });
-                    coopState.spawnTimer = Math.max(60, 150 - coopState.wave * 15);
+            document.getElementById('d-time').innerText = Math.ceil(dState.timer/60);
+            document.getElementById('d-alive').innerText = Math.floor(dState.timeAlive/60);
+
+            if (type === 'earthquake') {
+                screenShake = 3;
+                if (Math.random() < 0.05) dHazards.push({ type: 'debris', x: Math.random()*(map.walls[1].x-map.walls[0].x)+map.walls[0].x, y: -50, vy: 5+Math.random()*5, w: 20, h: 20 });
+            } else if (type === 'zombies') {
+                if (Math.random() < 0.02 && zombies.length < 8) zombies.push({ id: Math.random().toString(), x: Math.random() > 0.5 ? 80 : 1320, y: 100, w: 35, h: 50, hp: 20, maxHp: 20, vx: 0, vy: 0, facing: 1, isGrounded: false });
+            } else if (type === 'bugs') {
+                if (Math.random() < 0.03 && zombies.length < 5) zombies.push({ type: 'bug', id: Math.random().toString(), x: Math.random() > 0.5 ? 80 : 1320, y: 100, w: 20, h: 20, hp: 10, maxHp: 10, vx: 0, vy: 0, facing: 1, isGrounded: false });
+            } else if (type === 'volcano') {
+                dState.waterLevel = Math.max(map.floor - 120, dState.waterLevel - 2);
+                if (Math.random() < 0.03) dHazards.push({ type: 'fireball', x: Math.random()*(map.walls[1].x-map.walls[0].x)+map.walls[0].x, y: map.floor, vy: -10 - Math.random()*5, w: 15, h: 15 });
+            } else if (type === 'flood') {
+                dState.waterLevel = Math.max(map.floor - 200, dState.waterLevel - 1);
+            } else if (type === 'asteroid') {
+                if (Math.random() < 0.02) {
+                    let ax = Math.random()*(map.walls[1].x-map.walls[0].x)+map.walls[0].x;
+                    dHazards.push({ type: 'warning', x: ax, y: -1000, w: 60, h: 2000, life: 60 });
+                    setTimeout(() => { if(gameMode==='disaster') dHazards.push({ type: 'meteor', x: ax, y: -100, vy: 25, w: 60, h: 60 }); }, 1000);
+                }
+            }
+
+            // Hazard Updates
+            for(let i=dHazards.length-1; i>=0; i--) {
+                let h = dHazards[i];
+                if (h.type === 'debris' || h.type === 'meteor') { h.y += h.vy; if(h.y > map.floor) dHazards.splice(i,1); }
+                else if (h.type === 'fireball') { h.y += h.vy; h.vy += 0.3; if(h.y > map.floor) dHazards.splice(i,1); }
+                else if (h.type === 'warning') { h.life--; if(h.life<=0) dHazards.splice(i,1); }
+            }
+        }
+
+        // --- CO-OP & DISASTER ZOMBIE AI ---
+        if (gameMode !== 'pvp') {
+            if (!coopState.bossSpells) coopState.bossSpells = [];
+
+            if (gameMode === 'coop') {
+                if (coopState.kills > 0 && coopState.kills % 20 === 0 && !coopState.bossActive) {
+                    zombies = []; 
+                    zombies.push({
+                        id: 'boss_' + coopState.wave, isBoss: true, phase: 1, isDashing: false,
+                        x: canvas.width/2 - 45, y: 320, baseY: 320, w: 90, h: 130,
+                        hp: 2000 + coopState.wave * 100, maxHp: 2000 + coopState.wave * 100, 
+                        vx: 0, vy: 0, facing: 1, isGrounded: false, attackTimer: 100
+                    });
+                    coopState.bossActive = true; showWarning("⚠️ SUPREME HEADMASTER HAS AWOKEN ⚠️", 4000);
+                }
+
+                if (!coopState.bossActive) {
+                    coopState.spawnTimer--; let maxZombies = 5 + coopState.wave * 2;
+                    if (coopState.spawnTimer <= 0 && zombies.length < maxZombies) {
+                        zombies.push({ id: Math.random().toString(), x: Math.random() > 0.5 ? 80 : 1320, y: 100, w: 35, h: 50, hp: 20 + coopState.wave * 10, maxHp: 20 + coopState.wave * 10, vx: 0, vy: 0, facing: 1, isGrounded: false });
+                        coopState.spawnTimer = Math.max(60, 150 - coopState.wave * 15);
+                    }
                 }
             }
 
@@ -604,13 +715,13 @@ function update() {
                     if (z.isBoss) {
                         coopState.bossActive = false; coopState.kills++; coopState.wave += 2;
                         showWarning("SUPREME HEADMASTER FELLED!", 3000);
-                    } else {
+                    } else if (gameMode === 'coop') {
                         coopState.kills++; 
                         if (coopState.kills % 20 !== 0 && coopState.kills % 10 === 0) { coopState.wave++; showWarning("WAVE " + coopState.wave, 2000); }
                     }
                     spawnParticles(z.x+z.w/2, z.y+z.h/2, '#ff8c00', z.isBoss ? 100 : 30, z.isBoss ? 15 : 8); 
                     zombies.splice(i, 1); 
-                    document.getElementById('coop-wave').innerText = coopState.wave; document.getElementById('coop-kills').innerText = coopState.kills;
+                    if(gameMode==='coop'){ document.getElementById('coop-wave').innerText = coopState.wave; document.getElementById('coop-kills').innerText = coopState.kills;}
                     continue;
                 }
 
@@ -622,20 +733,15 @@ function update() {
                     z.phase = (z.hp < z.maxHp * 0.5) ? 2 : 1; 
                     z.y = z.baseY + Math.sin(Date.now() / 400) * 30;
                     if (target && !z.isDashing) z.facing = target.x < z.x ? -1 : 1;
-                    
                     z.attackTimer--;
                     if (z.attackTimer <= 0) {
-                        z.isDashing = false; 
-                        z.attackTimer = z.phase === 2 ? 80 : 120; 
+                        z.isDashing = false; z.attackTimer = z.phase === 2 ? 80 : 120; 
                         let roll = Math.random();
-
                         if (roll < 0.4) {
                             if (target) {
                                 let angle = Math.atan2((target.y+20) - (z.y+60), target.x - (z.x+45));
                                 let count = z.phase === 2 ? 2 : 1; 
-                                for(let k=-count-1; k<=count+1; k++) {
-                                    coopState.bossSpells.push({type: 'paper', x: z.x+45, y: z.y+60, vx: Math.cos(angle + k*0.2)*8, vy: Math.sin(angle + k*0.2)*8, life: 180, w: 20, h: 24});
-                                }
+                                for(let k=-count-1; k<=count+1; k++) coopState.bossSpells.push({type: 'paper', x: z.x+45, y: z.y+60, vx: Math.cos(angle + k*0.2)*8, vy: Math.sin(angle + k*0.2)*8, life: 180, w: 20, h: 24});
                             }
                         } else if (roll < 0.75) {
                             let dropCount = z.phase === 2 ? 6 : 4;
@@ -643,21 +749,20 @@ function update() {
                                 let dropX = Math.random() * (map.walls[1].x - map.walls[0].x - 60) + map.walls[0].x;
                                 coopState.bossSpells.push({type: 'homework', x: dropX, y: map.floor - 800 - (Math.random()*400), vx: 0, vy: 12 + (z.phase*2), life: 300, w: 60, h: 80});
                             }
-                        } else {
-                            z.isDashing = true; z.vx = z.facing * (z.phase === 2 ? 25 : 18); z.attackTimer = 60;
-                        }
+                        } else { z.isDashing = true; z.vx = z.facing * (z.phase === 2 ? 25 : 18); z.attackTimer = 60; }
                     }
-                    z.x += z.vx; z.vx *= 0.9; 
-                    let maxSpd = z.isDashing ? 30 : 4.5;
+                    z.x += z.vx; z.vx *= 0.9; let maxSpd = z.isDashing ? 30 : 4.5;
                     if (Math.abs(z.vx) > maxSpd) z.vx = Math.sign(z.vx) * maxSpd;
-                    if (z.x < map.walls[0].x + map.walls[0].w) z.x = map.walls[0].x + map.walls[0].w;
-                    if (z.x + z.w > map.walls[1].x) z.x = map.walls[1].x - z.w;
-
+                } else if (z.type === 'bug') {
+                    if (target) {
+                        let angle = Math.atan2(target.y - z.y, target.x - z.x);
+                        z.vx += Math.cos(angle) * 0.2; z.vy += Math.sin(angle) * 0.2;
+                    }
+                    z.vx *= 0.95; z.vy *= 0.95; z.x += z.vx; z.y += z.vy;
                 } else {
                     z.vy += 0.7; z.x += z.vx; z.y += z.vy; z.isGrounded = false;
                     map.platforms.forEach(plat => { let prevY = z.y - z.vy; if (prevY + z.h <= plat.y + 1 && z.y + z.h >= plat.y) { if (z.x + z.w > plat.x && z.x < plat.x + plat.w) { z.y = plat.y - z.h; z.vy = 0; z.isGrounded = true; } } });
                     if (z.y + z.h > map.floor) { z.y = map.floor - z.h; z.vy = 0; z.isGrounded = true; }
-                    
                     if (target) { if (target.x < z.x) { z.vx -= 0.15; z.facing = -1; } else { z.vx += 0.15; z.facing = 1; } }
                     z.vx *= 0.9; let maxSpd = Math.min(6, 2 + coopState.wave * 0.3);
                     if (Math.abs(z.vx) > maxSpd) z.vx = Math.sign(z.vx) * maxSpd;
@@ -668,57 +773,57 @@ function update() {
             for (let i = coopState.bossSpells.length - 1; i >= 0; i--) {
                 let s = coopState.bossSpells[i];
                 s.x += s.vx; s.y += s.vy; s.life--;
-
-                if (s.type === 'homework' && s.y + s.h > map.floor) {
-                    s.life = 0; screenShake = 5; 
-                    spawnParticles(s.x + s.w/2, map.floor, '#444', 15, 5);
-                }
+                if (s.type === 'homework' && s.y + s.h > map.floor) { s.life = 0; screenShake = 5; spawnParticles(s.x + s.w/2, map.floor, '#444', 15, 5); }
                 if (s.life <= 0) coopState.bossSpells.splice(i, 1);
             }
         }
     }
 
+    // Health Packs Logic
     for (let i = healthPacks.length - 1; i >= 0; i--) {
-        let p = healthPacks[i];
-        p.vy += 0.2; p.y += p.vy; p.life--;
-        
+        let p = healthPacks[i]; p.vy += 0.2; p.y += p.vy; p.life--;
         map.platforms.forEach(plat => { let prevY = p.y - p.vy; if (prevY + p.h <= plat.y + 1 && p.y + p.h >= plat.y) { if (p.x + p.w > plat.x && p.x < plat.x + plat.w) { p.y = plat.y - p.h; p.vy = 0; } } });
         if (p.y + p.h > map.floor) { p.y = map.floor - p.h; p.vy = 0; }
 
         if (player.hp > 0 && checkRectOverlap(player, p)) {
-            player.hp = Math.min(player.maxHp, player.hp + 5);
-            spawnParticles(p.x+10, p.y+10, '#00ff00', 20, 5);
+            player.hp = Math.min(player.maxHp, player.hp + 5); spawnParticles(p.x+10, p.y+10, '#00ff00', 20, 5);
             if (conn && conn.open) conn.send({ type: 'consume_pack', id: p.id });
-            healthPacks.splice(i, 1);
-            continue;
+            healthPacks.splice(i, 1); continue;
         }
         if (p.life <= 0) healthPacks.splice(i, 1);
     }
 
     player.update(); syncData();
 
-    if(!isCoop && otherPlayer.hp <= 0 && !gameOver) {
+    if(gameMode === 'pvp' && otherPlayer.hp <= 0 && !gameOver) {
         showWarning("<b style='color:#00e5ff'>VICTORY!</b><br><span style='font-size:20px; color:#aaa'>+1 Win Recorded!</span>", 3000);
         gameOver = true; winCount++; localStorage.setItem('hk_pvp_wins', winCount);
         matchHistory.push({ name: otherPlayer.name, skin: otherPlayer.skin, avatar: otherPlayer.avatar, charClass: otherPlayer.charClass, date: new Date().toLocaleString() });
         if(matchHistory.length > 20) matchHistory.shift(); localStorage.setItem('hk_pvp_history', JSON.stringify(matchHistory));
         setTimeout(() => location.reload(), 3000);
+    } else if (gameMode === 'disaster' && otherPlayer.hp <= 0 && !gameOver) {
+        showWarning("<b style='color:#00e5ff'>YOU SURVIVED!</b><br><span style='font-size:20px; color:#aaa'>Time: " + Math.floor(dState.timeAlive/60) + "s</span>", 3000);
+        gameOver = true; setTimeout(() => location.reload(), 3000);
     }
     
-    if (isCoop && player.hp <= 0 && otherPlayer.hp <= 0 && !gameOver) {
+    if (gameMode === 'coop' && player.hp <= 0 && otherPlayer.hp <= 0 && !gameOver) {
         showWarning("<b style='color:#ff3333'>THE SWARM CONSUMED YOU</b><br><span style='font-size:20px; color:#fff'>Total Kills: " + coopState.kills + "</span>", 5000);
         gameOver = true; setTimeout(() => location.reload(), 5000);
     }
+
+    let pvpActive = gameMode === 'pvp' || (gameMode === 'disaster' && dState.types[dState.current] === 'pvp');
 
     for(let i = projectiles.length - 1; i >= 0; i--) {
         let p = projectiles[i]; p.x += p.vx; p.life--;
         let hitOpp = !p.isFromOpp && checkRectOverlap(p, otherPlayer);
         
-        if (!isCoop) {
+        if (pvpActive) {
             let hitMe = p.isFromOpp && checkRectOverlap(p, player) && player.invincible <= 0 && !player.isDash;
             if(hitMe) { player.takeDamage(p.spellType === 'blackgold' ? 4 : 2, p.x); projectiles.splice(i, 1); continue; } 
             else if (hitOpp) { spawnParticles(otherPlayer.x+15, otherPlayer.y+20, '#fff', 20, 10); hitStopFrames = 3; screenShake = 8; projectiles.splice(i, 1); continue; } 
-        } else {
+        }
+        
+        if (gameMode !== 'pvp') {
             let zHit = false;
             for(let j = 0; j < zombies.length; j++) {
                 if (checkRectOverlap(p, zombies[j])) {
@@ -750,55 +855,59 @@ function draw() {
     ctx.fillStyle = map.themeColor; map.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
     ctx.fillStyle = map.platColor; map.platforms.forEach(p => { ctx.fillRect(p.x, p.y, p.w, p.h); });
 
+    if (gameMode === 'disaster') {
+        let type = dState.types[dState.current];
+        if (type === 'volcano' || type === 'flood') {
+            ctx.fillStyle = type === 'volcano' ? 'rgba(255, 69, 0, 0.8)' : 'rgba(0, 105, 148, 0.6)';
+            ctx.fillRect(-1000, dState.waterLevel, 4000, 2000);
+        }
+        dHazards.forEach(h => {
+            if (h.type === 'debris') { ctx.fillStyle = '#666'; ctx.fillRect(h.x, h.y, h.w, h.h); }
+            else if (h.type === 'fireball') { ctx.fillStyle = '#ff4500'; ctx.beginPath(); ctx.arc(h.x, h.y, h.w, 0, Math.PI*2); ctx.fill(); }
+            else if (h.type === 'warning') { ctx.fillStyle = 'rgba(255,0,0,0.3)'; ctx.fillRect(h.x, h.y, h.w, h.h); }
+            else if (h.type === 'meteor') { ctx.fillStyle = '#800000'; ctx.shadowColor='#ff4500'; ctx.shadowBlur=20; ctx.beginPath(); ctx.arc(h.x+h.w/2, h.y+h.h/2, h.w/2, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur=0; }
+        });
+    }
+
     healthPacks.forEach(p => {
         let pulse = Math.sin(Date.now() / 150) * 5 + 15;
         ctx.save(); ctx.translate(p.x + p.w/2, p.y + p.h/2);
         ctx.globalAlpha = p.life < 60 ? (p.life % 10 < 5 ? 0.2 : 0.8) : 1; 
         ctx.shadowColor = '#00ff00'; ctx.shadowBlur = pulse; ctx.fillStyle = '#00ff00';
         ctx.fillRect(-p.w/2, -p.h/6, p.w, p.h/3); ctx.fillRect(-p.w/6, -p.h/2, p.w/3, p.h);
-        ctx.fillStyle = '#fff'; ctx.shadowBlur = 0;
-        ctx.fillRect(-p.w/4, -p.h/12, p.w/2, p.h/6); ctx.fillRect(-p.w/12, -p.h/4, p.w/6, p.h/2);
+        ctx.fillStyle = '#fff'; ctx.shadowBlur = 0; ctx.fillRect(-p.w/4, -p.h/12, p.w/2, p.h/6); ctx.fillRect(-p.w/12, -p.h/4, p.w/6, p.h/2);
         ctx.restore();
     });
 
     if(gameStarted) { player.draw.call(otherPlayer, false); player.draw(true); }
 
-    if (isCoop) {
+    if (gameMode !== 'pvp') {
         zombies.forEach(z => {
             ctx.save(); ctx.translate(z.x + z.w/2, z.y + z.h/2);
             if (z.isBoss) {
-                ctx.shadowColor = z.phase === 2 ? '#ff0000' : '#00e5ff'; 
-                ctx.shadowBlur = z.phase === 2 ? 25 : 15;
-                ctx.fillStyle = '#0f1724';
-                ctx.beginPath(); ctx.moveTo(-z.w/2, z.h/2); ctx.quadraticCurveTo(0, z.h/2 + 20, z.w/2, z.h/2); ctx.lineTo(z.w/2.5, -z.h/4); ctx.lineTo(-z.w/2.5, -z.h/4); ctx.fill();
-                ctx.strokeStyle = z.phase === 2 ? '#ff3333' : '#00e5ff'; ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.moveTo(-z.w/4, z.h/2 - 10); ctx.lineTo(0, z.h/4); ctx.lineTo(z.w/4, z.h/2 - 10); ctx.stroke();
-                ctx.fillStyle = '#1c2838'; ctx.shadowBlur = 5;
-                ctx.beginPath(); ctx.ellipse(0, -z.h/4 + 10, z.w/2 + 15, 15, 0, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#050505'; ctx.shadowBlur = 0;
-                ctx.beginPath(); ctx.arc(0, -z.h/4 - 15, 28, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = z.phase === 2 ? '#ff0000' : '#00e5ff'; 
-                ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 20;
+                ctx.shadowColor = z.phase === 2 ? '#ff0000' : '#00e5ff'; ctx.shadowBlur = z.phase === 2 ? 25 : 15;
+                ctx.fillStyle = '#0f1724'; ctx.beginPath(); ctx.moveTo(-z.w/2, z.h/2); ctx.quadraticCurveTo(0, z.h/2 + 20, z.w/2, z.h/2); ctx.lineTo(z.w/2.5, -z.h/4); ctx.lineTo(-z.w/2.5, -z.h/4); ctx.fill();
+                ctx.strokeStyle = z.phase === 2 ? '#ff3333' : '#00e5ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-z.w/4, z.h/2 - 10); ctx.lineTo(0, z.h/4); ctx.lineTo(z.w/4, z.h/2 - 10); ctx.stroke();
+                ctx.fillStyle = '#1c2838'; ctx.shadowBlur = 5; ctx.beginPath(); ctx.ellipse(0, -z.h/4 + 10, z.w/2 + 15, 15, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#050505'; ctx.shadowBlur = 0; ctx.beginPath(); ctx.arc(0, -z.h/4 - 15, 28, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = z.phase === 2 ? '#ff0000' : '#00e5ff'; ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 20;
                 let eyeOffset = z.facing === 1 ? 5 : -5;
-                ctx.beginPath(); ctx.ellipse(-12 + eyeOffset, -z.h/4 - 15, 6, 12, -0.2, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.ellipse(8 + eyeOffset, -z.h/4 - 15, 6, 12, 0.2, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#111'; ctx.shadowBlur = 10;
-                ctx.beginPath(); ctx.moveTo(0, -z.h/2 - 35); ctx.lineTo(60, -z.h/4 - 40); ctx.lineTo(0, -z.h/4 - 15); ctx.lineTo(-60, -z.h/4 - 40); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(-12 + eyeOffset, -z.h/4 - 15, 6, 12, -0.2, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(8 + eyeOffset, -z.h/4 - 15, 6, 12, 0.2, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#111'; ctx.shadowBlur = 10; ctx.beginPath(); ctx.moveTo(0, -z.h/2 - 35); ctx.lineTo(60, -z.h/4 - 40); ctx.lineTo(0, -z.h/4 - 15); ctx.lineTo(-60, -z.h/4 - 40); ctx.fill();
                 ctx.strokeStyle = z.phase === 2 ? '#ff0000' : '#00e5ff'; ctx.lineWidth = 2; ctx.stroke();
-                ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.moveTo(0, -z.h/4 - 25); ctx.lineTo(-50, -z.h/4 - 5); ctx.stroke();
+                ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -z.h/4 - 25); ctx.lineTo(-50, -z.h/4 - 5); ctx.stroke();
                 ctx.fillStyle = '#443322'; ctx.fillRect(z.facing === 1 ? z.w/2 : -z.w/2 - 5, -z.h/4, 5, 80);
-                ctx.fillStyle = z.phase === 2 ? '#ff0000' : '#00e5ff'; 
-                ctx.beginPath(); ctx.arc(z.facing === 1 ? z.w/2 + 2.5 : -z.w/2 - 2.5, -z.h/4, 10, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = z.phase === 2 ? '#ff0000' : '#00e5ff'; ctx.beginPath(); ctx.arc(z.facing === 1 ? z.w/2 + 2.5 : -z.w/2 - 2.5, -z.h/4, 10, 0, Math.PI*2); ctx.fill();
+            } else if (z.type === 'bug') {
+                ctx.fillStyle = '#2d4a22'; ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#adff2f'; ctx.beginPath(); ctx.arc(z.facing===1?5:-5,-2,3,0,Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(-8,-15,16,10);
             } else {
-                ctx.fillStyle = '#1a1a1a'; 
-                ctx.beginPath(); ctx.moveTo(-z.w/2, z.h/2); ctx.quadraticCurveTo(-z.w/2, -z.h/2, 0, -z.h/2); ctx.quadraticCurveTo(z.w/2, -z.h/2 + 10, z.w/2, z.h/2); ctx.fill();
+                ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.moveTo(-z.w/2, z.h/2); ctx.quadraticCurveTo(-z.w/2, -z.h/2, 0, -z.h/2); ctx.quadraticCurveTo(z.w/2, -z.h/2 + 10, z.w/2, z.h/2); ctx.fill();
                 let bulgeOffset = z.facing === 1 ? -10 : 10;
-                ctx.fillStyle = '#ff8c00'; ctx.shadowColor = '#ff8c00'; ctx.shadowBlur = 15;
-                ctx.beginPath(); ctx.arc(bulgeOffset, -z.h/2 + 5, 18, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#ff8c00'; ctx.shadowColor = '#ff8c00'; ctx.shadowBlur = 15; ctx.beginPath(); ctx.arc(bulgeOffset, -z.h/2 + 5, 18, 0, Math.PI*2); ctx.fill();
                 ctx.fillStyle = '#ffaa00'; ctx.beginPath(); ctx.arc(bulgeOffset + 5, -z.h/2, 8, 0, Math.PI*2); ctx.fill();
-                ctx.shadowBlur = 15; let eyeX = z.facing === 1 ? 10 : -10;
-                ctx.fillStyle = '#ff8c00'; ctx.beginPath(); ctx.arc(eyeX, -z.h/4, 6, 0, Math.PI*2); ctx.fill();
+                ctx.shadowBlur = 15; let eyeX = z.facing === 1 ? 10 : -10; ctx.fillStyle = '#ff8c00'; ctx.beginPath(); ctx.arc(eyeX, -z.h/4, 6, 0, Math.PI*2); ctx.fill();
                 ctx.shadowBlur = 0; ctx.fillStyle = '#f00'; ctx.fillRect(-z.w/2, -z.h/2 - 20, z.w * (z.hp / z.maxHp), 4);
             }
             ctx.restore();
@@ -808,18 +917,12 @@ function draw() {
             coopState.bossSpells.forEach(s => {
                 if (s.type === 'paper') {
                     ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.life * 0.15);
-                    ctx.fillStyle = '#fff'; ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 15;
-                    ctx.fillRect(-10, -12, 20, 24); 
-                    ctx.fillStyle = '#000'; ctx.shadowBlur = 0;
-                    ctx.fillRect(-6, -6, 12, 2); ctx.fillRect(-6, 0, 12, 2); ctx.fillRect(-6, 6, 8, 2);
+                    ctx.fillStyle = '#fff'; ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 15; ctx.fillRect(-10, -12, 20, 24); 
+                    ctx.fillStyle = '#000'; ctx.shadowBlur = 0; ctx.fillRect(-6, -6, 12, 2); ctx.fillRect(-6, 0, 12, 2); ctx.fillRect(-6, 6, 8, 2);
                     ctx.restore();
                 } else if (s.type === 'homework') {
-                    ctx.save(); ctx.translate(s.x, s.y);
-                    ctx.fillStyle = '#223344'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 20;
-                    ctx.fillRect(0, 0, s.w, s.h);
-                    ctx.fillStyle = '#fff'; ctx.fillRect(4, 4, s.w-8, s.h-8);
-                    ctx.fillStyle = '#f00'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center';
-                    ctx.fillText("考", s.w/2, s.h/2 + 8);
+                    ctx.save(); ctx.translate(s.x, s.y); ctx.fillStyle = '#223344'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 20; ctx.fillRect(0, 0, s.w, s.h);
+                    ctx.fillStyle = '#fff'; ctx.fillRect(4, 4, s.w-8, s.h-8); ctx.fillStyle = '#f00'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center'; ctx.fillText("考", s.w/2, s.h/2 + 8);
                     ctx.restore();
                 }
             });
@@ -829,33 +932,20 @@ function draw() {
     projectiles.forEach(p => { 
         let spellColor = getSkinColors(p.skin, false).spell;
         ctx.save(); ctx.translate(p.x + p.w/2, p.y + p.h/2); if(p.facing === -1) ctx.scale(-1, 1); 
-        
-        if (p.spellType === 'blackgold') {
-            ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 25; let pGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, p.w); 
-            pGrad.addColorStop(0, '#000000'); pGrad.addColorStop(0.5, '#ffd700'); pGrad.addColorStop(1, 'rgba(0,0,0,0)'); 
-            ctx.fillStyle = pGrad; 
-        } else {
-            ctx.shadowColor = spellColor; ctx.shadowBlur = 20; let pGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, p.w); 
-            pGrad.addColorStop(0, '#fff'); pGrad.addColorStop(0.5, spellColor); pGrad.addColorStop(1, 'rgba(0,0,0,0)'); 
-            ctx.fillStyle = pGrad; 
-        }
-        
-        ctx.beginPath(); ctx.moveTo(p.w/2, 0); ctx.quadraticCurveTo(p.w/4, p.h/2, -p.w/2, p.h/4); ctx.lineTo(-p.w/1.2, 0); ctx.lineTo(-p.w/2, -p.h/4); ctx.quadraticCurveTo(p.w/4, -p.h/2, p.w/2, 0); ctx.fill(); 
-        ctx.restore(); 
+        if (p.spellType === 'blackgold') { ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 25; let pGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, p.w); pGrad.addColorStop(0, '#000000'); pGrad.addColorStop(0.5, '#ffd700'); pGrad.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = pGrad; } 
+        else { ctx.shadowColor = spellColor; ctx.shadowBlur = 20; let pGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, p.w); pGrad.addColorStop(0, '#fff'); pGrad.addColorStop(0.5, spellColor); pGrad.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = pGrad; }
+        ctx.beginPath(); ctx.moveTo(p.w/2, 0); ctx.quadraticCurveTo(p.w/4, p.h/2, -p.w/2, p.h/4); ctx.lineTo(-p.w/1.2, 0); ctx.lineTo(-p.w/2, -p.h/4); ctx.quadraticCurveTo(p.w/4, -p.h/2, p.w/2, 0); ctx.fill(); ctx.restore(); 
     });
     particles.forEach(p => { ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill(); }); 
-    
     ctx.restore();
 
-    if (isCoop && coopState.bossActive) {
+    if (gameMode === 'coop' && coopState.bossActive) {
         let boss = zombies.find(z => z.isBoss);
         if (boss) {
             ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(canvas.width/2 - 310, 40, 620, 50);
             ctx.fillStyle = '#333'; ctx.fillRect(canvas.width/2 - 300, 65, 600, 15);
-            ctx.fillStyle = '#ff0000'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 10;
-            ctx.fillRect(canvas.width/2 - 300, 65, 600 * (boss.hp / boss.maxHp), 15);
-            ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Segoe UI'; ctx.textAlign = 'center'; 
-            ctx.fillText(boss.phase === 2 ? "SUPREME HEADMASTER: ENRAGED" : "SUPREME HEADMASTER", canvas.width/2, 58);
+            ctx.fillStyle = '#ff0000'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 10; ctx.fillRect(canvas.width/2 - 300, 65, 600 * (boss.hp / boss.maxHp), 15);
+            ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Segoe UI'; ctx.textAlign = 'center'; ctx.fillText(boss.phase === 2 ? "SUPREME HEADMASTER: ENRAGED" : "SUPREME HEADMASTER", canvas.width/2, 58);
         }
     }
 }
