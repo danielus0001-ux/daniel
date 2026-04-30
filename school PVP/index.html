@@ -142,7 +142,7 @@
             [A/D] Move | [W/Space] Jump | <b style="color:#fff; border-bottom:1px dotted #fff;">[L] Dash</b><br>
             [J] Slash | [W+J] Up Slash | [S+J] Down Slash<br>
             <b style="color:#00e5ff">[K] Skill</b> | <b>[Hold F] Heal</b><br>
-            <span style="color:#aaa">Physics: Momentum & Coyote Time Active</span>
+            <span style="color:#aaa">Physics: Hard Rigid Body Collision Active</span>
         </div>
     </div>
 
@@ -208,7 +208,7 @@ function getSkinColors(skinStr, isDash) {
     }
 }
 
-// 6 Rooms: 3 PVP, 2 CO-OP, 1 DISASTER
+// 6 Rooms
 const arenas = [
     { id: 'arena1', name: "The Crossroads", type: "(PVP Flat)", mode: 'pvp' }, 
     { id: 'arena2', name: "Greenpath", type: "(PVP Platforms)", mode: 'pvp' },
@@ -243,7 +243,7 @@ function initLobbyRadar() {
 }
 function checkRoom(arenaId) {
     return new Promise((resolve) => {
-        let tId = 'nspvp-v24-' + arenaId; 
+        let tId = 'nspvp-v25-' + arenaId; 
         let timeout = setTimeout(() => { if (probeCallbacks[tId]) { probeCallbacks[tId](0); delete probeCallbacks[tId]; } }, 1500);
         probeCallbacks[tId] = (result) => { clearTimeout(timeout); resolve(result); };
         let c = lobbyPeer.connect(tId, { metadata: { type: 'probe' } });
@@ -400,15 +400,31 @@ window.addEventListener('keyup', e => { let k = e.key.toLowerCase(); if(keys.has
 function spawnParticles(x, y, color, count, speed) { for(let i=0; i<count; i++) particles.push({ x, y, vx: (Math.random()-0.5)*speed, vy: (Math.random()-0.5)*speed - 2, life: 1.0, color, size: Math.random()*3+2 }); }
 function checkRectOverlap(r1, r2) { return r1 && r2 && r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y < r2.y + r2.h && r1.y + r1.h > r2.y; }
 
+// --- 完美的 2D 刚体分离算法 (Dual-Axis Rigid Body Resolution) ---
 function resolvePhysics(a, b, weightA = 0.5, weightB = 0.5) {
     if (!a || !b || a.hp <= 0 || b.hp <= 0 || a.isDash || b.isDash) return;
-    if (checkRectOverlap(a, b)) {
+    if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y) {
         let cxA = a.x + a.w/2; let cxB = b.x + b.w/2;
-        let overlap = (a.w/2 + b.w/2) - Math.abs(cxA - cxB);
-        if (overlap > 0) {
-            let push = Math.min(overlap, 4); 
-            if (cxA > cxB) { a.x += push * weightA; b.x -= push * weightB; }
-            else { a.x -= push * weightA; b.x += push * weightB; }
+        let cyA = a.y + a.h/2; let cyB = b.y + b.h/2;
+        
+        let overlapX = (a.w/2 + b.w/2) - Math.abs(cxA - cxB);
+        let overlapY = (a.h/2 + b.h/2) - Math.abs(cyA - cyB);
+
+        if (overlapX > 0 && overlapY > 0) {
+            if (overlapX < overlapY) { // 横向挤开 (像一堵墙)
+                let push = overlapX + 0.1;
+                if (cxA > cxB) { a.x += push * weightA; b.x -= push * weightB; }
+                else { a.x -= push * weightA; b.x += push * weightB; }
+                if(weightA>0) a.vx *= 0.5; if(weightB>0) b.vx *= 0.5;
+            } else { // 纵向挤开 (踩在头顶上)
+                let push = overlapY + 0.1;
+                if (cyA < cyB) { 
+                    a.y -= push * weightA; b.y += push * weightB; 
+                    if(weightA>0) { a.vy=0; a.isGrounded=true; a.canDJ=true; }
+                } else { 
+                    a.y += push * weightA; b.y -= push * weightB; 
+                }
+            }
         }
     }
 }
@@ -426,7 +442,6 @@ const player = {
         let isKnight = this.charClass === 'knight'; let isMage = this.charClass === 'mage';
         let dashMaxCD = isKnight ? 90 : 45; 
 
-        // Physics parameters (dynamic based on environment)
         let inWater = (gameMode === 'disaster' && dState.types[dState.current] === 'flood' && this.y > dState.waterLevel);
         let currentGrav = inWater ? 0.3 : this.gravity;
         let acc = this.isGrounded ? 1.5 : 1.0;
@@ -439,7 +454,6 @@ const player = {
         } else { this.isFocus = false; this.focusT = 0; }
 
         if(!this.isDash && !this.isFocus) {
-            // Smooth Momentum Movement
             if(keys.a) { this.vx -= acc; this.facing = -1; } 
             else if(keys.d) { this.vx += acc; this.facing = 1; }
             this.vx *= fric;
@@ -447,7 +461,6 @@ const player = {
             let maxS = inWater ? 3 : 7;
             if (Math.abs(this.vx) > maxS) this.vx = Math.sign(this.vx) * maxS;
 
-            // Coyote & Jump Buffer
             if (this.isGrounded) this.coyote = 8; else if (this.coyote > 0) this.coyote--;
             if (jp) this.jumpBuf = 8; else if (this.jumpBuf > 0) this.jumpBuf--;
 
@@ -459,12 +472,10 @@ const player = {
                 this.canDJ = false; this.jumpBuf = 0; 
             }
 
-            // Variable Jump Height
             if (!keys.w && !keys.space && this.vy < 0) this.vy *= 0.6;
 
             let triggerHitbox = false; let ab = {w:0, h:0, x:0, y:0}; let dmgToZombies = 15;
 
-            // Spells
             if (sp) {
                 if (isKnight && this.soul >= 22 && this.dashC <= 0 && this.attackT <= 0) {
                     this.soul -= 22; this.attackT = 20; this.attackD = 'thrust'; this.vx = this.facing * 16;
@@ -478,7 +489,6 @@ const player = {
                 }
             }
 
-            // Slash
             if(ap && this.attackT <= 0) {
                 this.attackT = 16; this.attackD = keys.w ? 'up' : (keys.s && !this.isGrounded ? 'down' : 'fw');
                 ab = { w: 85, h: 80 }; if(this.attackD === 'up'){ ab.x=this.x-27; ab.y=this.y-70; } else if(this.attackD === 'down'){ ab.x=this.x-27; ab.y=this.y+this.h-10; } else { ab.x = this.facing === 1 ? this.x + this.w : this.x - ab.w; ab.y = this.y - 20; }
@@ -530,14 +540,11 @@ const player = {
             }
         }
         
-        // Disaster Env Damage
         if(gameMode === 'disaster' && this.invincible <= 0) {
             let type = dState.types[dState.current];
-            if (type === 'volcano' && this.y + this.h >= dState.waterLevel) this.takeDamage(2); // Lava
-            if (type === 'flood' && inWater && Math.random() < 0.05) this.takeDamage(0.5); // Drowning
-            dHazards.forEach(h => {
-                if(checkRectOverlap(this, h)) this.takeDamage(h.type==='meteor'?4:1, h.x);
-            });
+            if (type === 'volcano' && this.y + this.h >= dState.waterLevel) this.takeDamage(2);
+            if (type === 'flood' && inWater && Math.random() < 0.05) this.takeDamage(0.5);
+            dHazards.forEach(h => { if(checkRectOverlap(this, h)) this.takeDamage(h.type==='meteor'?4:1, h.x); });
         }
 
         if(this.invincible > 0) this.invincible--; if(this.attackT > 0) this.attackT--; if(this.dashC > 0) this.dashC--;
@@ -612,20 +619,24 @@ function update() {
     if(!gameStarted) return;
     if(hitStopFrames > 0) { hitStopFrames--; return; }
     
-    // --- Physics Collision Resolution ---
+    // --- 完美的双向刚体碰撞检测 ---
     if (player.hp > 0 && otherPlayer.hp > 0) resolvePhysics(player, otherPlayer, 0.5, 0.5);
     if (gameMode !== 'pvp') {
         zombies.forEach((z, i) => {
             if (z.hp > 0) {
+                // 玩家被怪物推挤 (Boss无法被玩家推动, 质量为无穷大)
                 let zW = z.isBoss ? 0 : 0.8; let pW = z.isBoss ? 1.0 : 0.2;
-                resolvePhysics(player, z, pW, zW); resolvePhysics(otherPlayer, z, pW, zW);
+                resolvePhysics(player, z, pW, zW); 
+                resolvePhysics(otherPlayer, z, pW, zW);
+                
+                // 怪物之间的互相推挤 (尸潮变立体)
                 if (isHost) {
                     for(let j = i + 1; j < zombies.length; j++) {
                         let z2 = zombies[j];
                         if (z2.hp > 0) {
                             if (z.isBoss) resolvePhysics(z, z2, 0, 1.0);
                             else if (z2.isBoss) resolvePhysics(z, z2, 1.0, 0);
-                            else resolvePhysics(z, z2, 0.5, 0.5);
+                            else resolvePhysics(z, z2, 0.5, 0.5); // 相同体型的丧尸互推
                         }
                     }
                 }
@@ -634,13 +645,11 @@ function update() {
     }
 
     if (isHost && !gameOver) {
-        // Global Health Packs
         if (Math.random() < 0.002) { 
             let pack = { id: Math.random().toString(), x: Math.random() * (map.walls[1].x - map.walls[0].x - 60) + map.walls[0].x + 30, y: -50, w: 20, h: 20, vy: 0, life: 600 };
             healthPacks.push(pack); if (conn && conn.open) conn.send({ type: 'spawn_pack', pack: pack });
         }
 
-        // --- DISASTER MODE LOGIC ---
         if (gameMode === 'disaster' && dState.active) {
             dState.timeAlive++; dState.timer--;
             let type = dState.types[dState.current];
@@ -675,7 +684,6 @@ function update() {
                 }
             }
 
-            // Hazard Updates
             for(let i=dHazards.length-1; i>=0; i--) {
                 let h = dHazards[i];
                 if (h.type === 'debris' || h.type === 'meteor') { h.y += h.vy; if(h.y > map.floor) dHazards.splice(i,1); }
@@ -684,7 +692,6 @@ function update() {
             }
         }
 
-        // --- CO-OP & DISASTER ZOMBIE AI ---
         if (gameMode !== 'pvp') {
             if (!coopState.bossSpells) coopState.bossSpells = [];
 
@@ -779,7 +786,6 @@ function update() {
         }
     }
 
-    // Health Packs Logic
     for (let i = healthPacks.length - 1; i >= 0; i--) {
         let p = healthPacks[i]; p.vy += 0.2; p.y += p.vy; p.life--;
         map.platforms.forEach(plat => { let prevY = p.y - p.vy; if (prevY + p.h <= plat.y + 1 && p.y + p.h >= plat.y) { if (p.x + p.w > plat.x && p.x < plat.x + plat.w) { p.y = plat.y - p.h; p.vy = 0; } } });
