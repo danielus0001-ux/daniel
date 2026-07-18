@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>FC 2026 PRO: P2P 静态直连版</title>
+    <!-- 引入 PeerJS 实现无服务器 P2P 联机 -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        body { margin: 0; background: #0a0a10; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; user-select: none; overflow-x: hidden; }
+        .header { background: #111; width: 100%; padding: 10px 0; text-align: center; border-bottom: 2px solid #00d2ff; margin-bottom: 10px;}
+        
+        /* P2P 联机面板 */
+        .lan-panel { background: rgba(0, 210, 255, 0.1); border: 1px solid #00d2ff; padding: 10px 20px; border-radius: 8px; display: flex; gap: 15px; align-items: center; margin-bottom: 15px; width: 1160px; justify-content: center; box-shadow: 0 0 15px rgba(0,210,255,0.2);}
+        .lan-panel input { background: #111; color: #ffeb3b; border: 1px solid #444; padding: 8px; font-size: 18px; border-radius: 4px; text-align: center; font-weight: bold; width: 120px;}
+        .lan-panel span { font-size: 16px; font-weight: bold; }
+        .btn-p2p { padding: 8px 15px; font-weight: bold; border-radius: 6px; cursor: pointer; border: none; color: white;}
+        .btn-host { background: linear-gradient(135deg, #ff3366, #cc0033); }
+        .btn-guest { background: linear-gradient(135deg, #00d2ff, #0055ff); }
+
+        .controls { display: flex; gap: 15px; justify-content: center; align-items: center; margin-bottom: 10px; flex-wrap: wrap; width: 1200px;}
+        select { font-size: 14px; padding: 6px; background: #1a1a2e; color: #fff; border: 1px solid #444; border-radius: 6px; outline: none; font-weight: bold;}
+        .team-select-group { display: flex; gap: 5px; align-items: center; background: rgba(255,255,255,0.05); padding: 5px 10px; border-radius: 8px; border: 1px solid #333;}
+        
+        #cameraMode { border-color: #ff3366; color: #ff3366; animation: glow 2s infinite alternate;}
+        @keyframes glow { from {box-shadow: 0 0 5px #ff3366;} to {box-shadow: 0 0 15px #ff3366;} }
+
+        button.btn-main { font-size: 16px; padding: 10px 20px; background: linear-gradient(135deg, #00d2ff, #0055ff); color: #fff; border: none; border-radius: 8px; font-weight: 900; cursor: pointer; box-shadow: 0 4px 15px rgba(0, 210, 255, 0.4); transition: 0.2s; margin: 0 5px;}
+        button.btn-main:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 210, 255, 0.6); }
+        button:disabled { filter: grayscale(1); cursor: not-allowed; }
+        
+        #fullscreenBtn { background: linear-gradient(135deg, #ff9900, #ff5500); box-shadow: 0 4px 15px rgba(255, 153, 0, 0.4); }
+
+        #instructions { width: 1160px; display: flex; justify-content: space-between; background: rgba(15,15,20,0.9); padding: 10px 20px; border: 1px solid #333; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box;}
+        .ctrl-box { width: 48%; }
+        .p1-title { color: #00d2ff; font-weight: bold; font-size: 15px; margin-bottom: 5px; border-bottom: 1px solid #00d2ff; padding-bottom: 5px;}
+        .p2-title { color: #ffeb3b; font-weight: bold; font-size: 15px; margin-bottom: 5px; border-bottom: 1px solid #ffeb3b; padding-bottom: 5px;}
+        .keys-grid { display: grid; grid-template-columns: 1fr 1fr; font-size: 13px; color: #ccc; gap: 4px; }
+        .key-hl { color: #fff; font-weight: bold; background: #333; padding: 2px 6px; border-radius: 4px; display: inline-block;}
+
+        #game-container { position: relative; width: 1200px; height: 650px; background: #111; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); overflow: hidden; perspective: none; transition: 0.3s; }
+        canvas { display: block; transform-style: preserve-3d; will-change: transform; transition: 0.3s; }
+        
+        #game-container:fullscreen { width: 100vw; height: 100vh; border-radius: 0; display: flex; align-items: center; justify-content: center; background: #050508; }
+        #game-container:fullscreen canvas { height: 100vh; width: calc(100vh * 1200 / 650); }
+        #game-container:fullscreen #scoreboard { transform: translateX(-50%) scale(1.3); top: 30px; }
+        #game-container:fullscreen #event-banner { transform: translate(-50%, -50%) scale(1.5); }
+        
+        #game-container:-webkit-full-screen { width: 100vw; height: 100vh; border-radius: 0; display: flex; align-items: center; justify-content: center; background: #050508; }
+        #game-container:-webkit-full-screen canvas { height: 100vh; width: calc(100vh * 1200 / 650); }
+        #game-container:-webkit-full-screen #scoreboard { transform: translateX(-50%) scale(1.3); top: 30px; }
+        #game-container:-webkit-full-screen #event-banner { transform: translate(-50%, -50%) scale(1.5); }
+
+        #scoreboard { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); background: rgba(15,15,20,0.9); border: 2px solid #00d2ff; border-radius: 12px; padding: 10px 30px; display: flex; align-items: center; gap: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); z-index: 10; backdrop-filter: blur(5px); transition: 0.3s;}
+        .team-name { font-size: 24px; font-weight: 900; width: 120px; text-align: center; letter-spacing: 2px; display: flex; flex-direction: column; align-items: center;}
+        .team-attrs { font-size: 10px; color: #aaa; letter-spacing: 0; font-weight: normal; margin-top: 4px;}
+        .score { font-size: 48px; font-weight: 900; color: #fff; text-shadow: 0 0 15px rgba(255,255,255,0.5); white-space: nowrap;}
+        .time-box { background: #00d2ff; color: #000; padding: 5px 15px; border-radius: 6px; font-size: 20px; font-weight: bold; }
+        
+        #event-banner { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); font-size: 72px; font-weight: 900; font-style: italic; color: #ffeb3b; text-shadow: 0 5px 15px rgba(0,0,0,0.8), 2px 2px 0px #ff3366; z-index: 20; opacity: 0; pointer-events: none; transition: 0.3s; }
+        #log-panel { width: 1160px; height: 110px; background: #151520; border: 1px solid #333; margin-top: 15px; border-radius: 8px; padding: 10px 20px; overflow-y: auto; font-size: 14px; color: #aaa; line-height: 1.6; box-sizing: border-box;}
+        .log-warn { color: #ff4757; font-weight: bold;}
+        .log-goal { color: #ffeb3b; font-size: 16px; font-weight: bold; }
+        .log-hl { color: #00d2ff; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2 style="margin:0; font-style: italic; color: #fff;">FC 2026 PRO <span style="color:#ff3366;">P2P SERVERLESS EDITION</span></h2>
+</div>
+
+<!-- 纯前端直连房间大厅 -->
+<div class="lan-panel">
+    <span>🌐 网页直连大厅:</span>
+    <input type="text" id="roomID" value="888" placeholder="房间号">
+    <button class="btn-p2p btn-host" onclick="createRoom()" id="createBtn">🏠 创建房间 (1P 房主)</button>
+    <button class="btn-p2p btn-guest" onclick="joinRoom()" id="joinBtn">🚪 加入房间 (2P 客机)</button>
+    <span id="roleDisplay" style="color:#aaa;">当前：单机/AI对战模式</span>
+</div>
+
+<div class="controls" id="hostControls">
+    <select id="cameraMode">
+        <option value="2D" selected>📺 2D 上帝视角</option>
+        <option value="3D_1P">🎥 3D 球员模式 (1P)</option>
+        <option value="3D_2P">🎥 3D 球员模式 (2P)</option>
+    </select>
+    <select id="diffSelect">
+        <option value="0.6">🟢 简单难度</option>
+        <option value="1.0" selected>🟡 普通难度</option>
+        <option value="1.3">🔴 受苦难度</option>
+    </select>
+    
+    <div class="team-select-group" style="border-color: #00d2ff;">
+        <span style="color: #00d2ff; font-weight: bold;">1P:</span>
+        <select id="teamA"></select>
+        <select id="formA"><option value="4-3-3">4-3-3</option><option value="4-4-2">4-4-2</option><option value="3-5-2">3-5-2</option></select>
+    </div>
+
+    <button class="btn-main" id="startBtn">🔥 鸣哨开球 🔥</button>
+    <button class="btn-main" id="fullscreenBtn">🔲 全屏</button>
+
+    <div class="team-select-group" style="border-color: #ffeb3b;">
+        <span style="color: #ffeb3b; font-weight: bold;">2P/AI:</span>
+        <select id="teamB"></select>
+        <select id="formB"><option value="4-3-3">4-3-3</option><option value="4-4-2">4-4-2</option><option value="5-3-2">5-3-2</option></select>
+    </div>
+</div>
+
+<div id="instructions">
+    <div class="ctrl-box">
+        <div class="p1-title" id="instTitleA">🎮 1P 控制说明 (房主/本地)</div>
+        <div class="keys-grid">
+            <div>移动: <span class="key-hl">W A S D</span></div>
+            <div>加速冲刺: <span class="key-hl">Space (空格)</span></div>
+            <div>短传/抢断: <span class="key-hl">V</span></div>
+            <div>大力射门: <span class="key-hl">B</span></div>
+            <div>手动切人: <span class="key-hl">C</span></div>
+            <div>高抛吊射: <span class="key-hl">N</span></div>
+        </div>
+        <div style="color:#ffeb3b; margin-top:5px; font-size:12px;">* 禁区内犯规判罚点球，战平进入加时/点球大战！</div>
+    </div>
+    <div class="ctrl-box">
+        <div class="p2-title" id="instTitleB">🎮 2P 控制说明 (挑战者/本地)</div>
+        <div class="keys-grid">
+            <div colspan="2" style="color:#ffeb3b; margin-bottom:4px;">* 异地联机时，2P也可使用自己键盘的左手 WASD 操作！</div>
+            <div>移动: <span class="key-hl">↑ ↓ ← →</span></div>
+            <div>加速冲刺: <span class="key-hl">Shift</span></div>
+            <div>短传/抢断: <span class="key-hl">K</span></div>
+            <div>大力射门: <span class="key-hl">L</span></div>
+            <div>手动切人: <span class="key-hl">J</span></div>
+            <div>高抛吊射: <span class="key-hl">I</span></div>
+        </div>
+        <div style="color:#ffeb3b; margin-top:5px; font-size:12px;">* 恶劣犯规将被出示黄/红牌，直接罚下！</div>
+    </div>
+</div>
+
+<div id="game-container">
+    <div id="scoreboard">
+        <div class="team-name" id="nameA" style="color:#5c9ced;"><span id="titleA">ARG</span><span class="team-attrs" id="attrA"></span></div>
+        <div class="score" id="scoreA">0</div>
+        <div style="font-size:30px; color:#555;">:</div>
+        <div class="score" id="scoreB">0</div>
+        <div class="team-name" id="nameB" style="color:#c1272d;"><span id="titleB">MAR</span><span class="team-attrs" id="attrB"></span></div>
+        <div class="time-box"><span id="gameTime">0</span>'</div>
+    </div>
+    <div id="event-banner">等待开局</div>
+    <canvas id="pitch" width="1200" height="650"></canvas>
+</div>
+
+<div id="log-panel"></div>
+
+<script>
+    // 球队核心数据
+    const TEAMS = {
+        'ARG': { id:'ARG', name: '阿根廷', c: '#5c9ced', tc: '#fff', stats: { gk:85, spd:85, pas:92, sho:90, def:85 } },
+        'ESP': { id:'ESP', name: '西班牙', c: '#c61111', tc: '#ffd700', stats: { gk:80, spd:80, pas:96, sho:84, def:86 } },
+        'FRA': { id:'FRA', name: '法国', c: '#14316b', tc: '#fff', stats: { gk:86, spd:95, pas:85, sho:92, def:85 } },
+        'ENG': { id:'ENG', name: '英格兰', c: '#ffffff', tc: '#cc0000', stats: { gk:85, spd:84, pas:86, sho:89, def:86 } },
+        'BRA': { id:'BRA', name: '巴西', c: '#fcd116', tc: '#008000', stats: { gk:87, spd:92, pas:90, sho:90, def:80 } },
+        'MAR': { id:'MAR', name: '摩洛哥', c: '#c1272d', tc: '#fff', stats: { gk:90, spd:88, pas:78, sho:78, def:92 } },
+        'GER': { id:'GER', name: '德国', c: '#000000', tc: '#fff', stats: { gk:92, spd:82, pas:85, sho:86, def:88 } },
+        'CPV': { id:'CPV', name: '佛得角', c: '#0f2366', tc: '#ff0000', stats: { gk:99, spd:85, pas:40, sho:65, def:85 } }
+    };
+
+    const keys = { ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false, shift:false, w:false, a:false, s:false, d:false, ' ':false };
+
+    const Engine = {
+        canvas: document.getElementById('pitch'), ctx: document.getElementById('pitch').getContext('2d'),
+        W: 1200, H: 650, state: 'STOPPED', gameMode: 'PVE', difficulty: 1.0, matchPhase: 'REGULAR',
+        min: 0, score: { A: 0, B: 0 }, players: [], ball: null, floatingTexts: [], loopId: null, clockId: null, spData: null,
+        activeA: null, activeB: null, manualDefense: { A: false, B: false }, camX: 600, camY: 325, shootout: null, lastSyncState: null
+    };
+
+    // ==========================================
+    // P2P WebRTC 网络层 (PeerJS)
+    // ==========================================
+    let peer = null;
+    let conn = null;
+    let myRole = 'OFFLINE'; 
+
+    function getPeerID(room) { return "FC26PRO-ROOM-" + room; }
+
+    function setupConnection() {
+        conn.on('open', () => {
+            document.getElementById('createBtn').disabled = true;
+            document.getElementById('joinBtn').disabled = true;
+            Engine.gameMode = 'PVP'; // 强制 PVP 模式
+            if(myRole === 'HOST') {
+                log("👀 挑战者 (2P) 已进入房间，可以发车了！", "log-hl");
+            } else {
+                document.getElementById('hostControls').style.opacity = 0.3;
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('cameraMode').value = '3D_2P';
+                document.getElementById('instTitleB').innerText = "🎮 你的控制面板 (2P 客机)";
+                document.getElementById('instTitleB').style.borderBottom = "2px solid #ffeb3b";
+                log("✅ 已成功连接到房主！等待房主开始比赛...", "log-hl");
+            }
+        });
+
+        conn.on('data', (msg) => {
+            if (msg.type === 'start' && myRole === 'GUEST') {
+                initMatchObj(msg.cfg); Engine.state = 'PLAYING';
+                if (!Engine.loopId) loop(); 
+            }
+            else if (msg.type === 'state' && myRole === 'GUEST') {
+                Engine.lastSyncState = msg;
+                Engine.state = msg.state; Engine.matchPhase = msg.phase; Engine.min = msg.min;
+                Engine.score.A = msg.sA; Engine.score.B = msg.sB;
+                if(msg.so) Engine.shootout = msg.so;
+            }
+            else if (msg.type === 'event' && myRole === 'GUEST') showEvent(msg.text);
+            else if (msg.type === 'log' && myRole === 'GUEST') log(msg.txt, msg.lType);
+            else if (msg.type === 'input' && myRole === 'HOST') {
+                keys.ArrowUp = msg.k.w; keys.ArrowDown = msg.k.s; keys.ArrowLeft = msg.k.a; keys.ArrowRight = msg.k.d; keys.shift = msg.k.space;
+            }
+            else if (msg.type === 'action' && myRole === 'HOST') processAction({ side: 'B', type: msg.act });
+        });
+
+        conn.on('close', () => {
+            log("⚠️ 网络连接已断开！", "log-warn");
+            myRole = 'OFFLINE'; Engine.state = 'STOPPED';
+            document.getElementById('roleDisplay').innerText = "❌ 连接断开";
+            document.getElementById('createBtn').disabled = false;
+            document.getElementById('joinBtn').disabled = false;
+        });
+    }
+
+    function createRoom() {
+        let room = document.getElementById('roomID').value;
+        if (!room) return alert("请输入房间号");
+        
+        peer = new Peer(getPeerID(room));
+        document.getElementById('createBtn').innerText = "⏳ 正在建房...";
+        
+        peer.on('open', (id) => {
+            myRole = 'HOST';
+            document.getElementById('roleDisplay').innerText = `✅ 房间 [${room}] | 1P (房主)`;
+            document.getElementById('createBtn').innerText = "等待挑战者...";
+            log(`🏠 房间创建成功！告诉你的朋友输入房间号 [${room}] 点击加入吧！`);
+        });
+
+        peer.on('connection', (connection) => {
+            conn = connection;
+            setupConnection();
+        });
+
+        peer.on('error', (err) => {
+            if (err.type === 'unavailable-id') alert("该房间号已被占用！请换一个房间号。");
+            else alert("网络错误: " + err);
+            document.getElementById('createBtn').innerText = "🏠 创建房间 (1P 房主)";
+        });
+    }
+
+    function joinRoom() {
+        let room = document.getElementById('roomID').value;
+        if (!room) return alert("请输入房间号");
+
+        peer = new Peer();
+        document.getElementById('joinBtn').innerText = "⏳ 连接中...";
+        
+        peer.on('open', (id) => {
+            conn = peer.connect(getPeerID(room));
+            myRole = 'GUEST';
+            document.getElementById('roleDisplay').innerText = `✅ 房间 [${room}] | 2P (客机)`;
+            document.getElementById('joinBtn').innerText = "已在房间内";
+            setupConnection();
+        });
+
+        peer.on('error', (err) => {
+            alert("连接失败: 请检查房主是否已成功建房");
+            document.getElementById('joinBtn').innerText = "🚪 加入房间 (2P 客机)";
+        });
+    }
+
+    // ==========================================
+    // 游戏核心逻辑
+    // ==========================================
+
+    document.getElementById('fullscreenBtn').addEventListener('click', () => {
+        const gameContainer = document.getElementById('game-container');
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            if (gameContainer.requestFullscreen) gameContainer.requestFullscreen();
+            else if (gameContainer.webkitRequestFullscreen) gameContainer.webkitRequestFullscreen();
+        } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        }
+    });
+
+    document.addEventListener('fullscreenchange', updateFullscreenBtn);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenBtn);
+    function updateFullscreenBtn() {
+        const btn = document.getElementById('fullscreenBtn');
+        if (document.fullscreenElement || document.webkitFullscreenElement) btn.innerText = "↖️ 退出全屏";
+        else btn.innerText = "🔲 全屏";
+    }
+
+    function showEvent(txt) {
+        const el = document.getElementById('event-banner');
+        el.innerText = txt; el.style.opacity = 1; el.style.transform = "translate(-50%, -50%) scale(1.1)";
+        setTimeout(() => { el.style.opacity = 0; el.style.transform = "translate(-50%, -50%) scale(0.9)"; }, 1500);
+        if (myRole === 'HOST' && conn && conn.open) conn.send({ type: 'event', text: txt });
+    }
+
+    class FloatingText {
+        constructor(x, y, text, color) { this.x = x; this.y = y; this.text = text; this.color = color; this.life = 40; }
+        update() { this.y -= 1.5; this.life--; }
+        draw(ctx) {
+            let camMode = document.getElementById('cameraMode').value;
+            ctx.save(); ctx.translate(this.x, this.y);
+            if (camMode === '3D_1P') ctx.rotate(90 * Math.PI / 180); else if (camMode === '3D_2P') ctx.rotate(-90 * Math.PI / 180);
+            ctx.fillStyle = this.color; ctx.globalAlpha = Math.max(0, this.life / 40);
+            ctx.font = 'bold 16px Arial'; ctx.fillText(this.text, 0, 0); ctx.restore();
+        }
+    }
+
+    class Ball {
+        constructor() { this.x=Engine.W/2; this.y=Engine.H/2; this.z=0; this.vx=0; this.vy=0; this.vz=0; this.owner=null; this.lastTouch=null; }
+        update() {
+            this.x += this.vx; this.y += this.vy; this.z += this.vz;
+            if (this.z > 0) { this.vz -= 0.8; this.vx *= 0.985; this.vy *= 0.985; } else { this.z = 0; this.vz = 0; this.vx *= 0.92; this.vy *= 0.92; }
+            if (this.z < 0) { this.z = 0; this.vz *= -0.5; } 
+
+            if (Engine.state === 'PLAYING') {
+                if (this.y < 20 || this.y > Engine.H - 20) {
+                    this.vy *= -0.5; this.y = this.y < 20 ? 20 : Engine.H - 20;
+                    if (Engine.matchPhase === 'SHOOTOUT') handleOut(); else handleSetPiece(this.lastTouch === 'A' ? 'B' : 'A', 'THROW');
+                }
+                if (this.x < 30) {
+                    if (this.y > Engine.H/2 - 50 && this.y < Engine.H/2 + 50 && this.z < 35) handleGoal('B');
+                    else { if (Engine.matchPhase === 'SHOOTOUT') handleOut(); else handleSetPiece(this.lastTouch === 'A' ? 'B' : 'A', this.lastTouch === 'B' ? 'CORNER' : 'GOAL_KICK', 30); }
+                }
+                if (this.x > Engine.W - 30) {
+                    if (this.y > Engine.H/2 - 50 && this.y < Engine.H/2 + 50 && this.z < 35) handleGoal('A');
+                    else { if (Engine.matchPhase === 'SHOOTOUT') handleOut(); else handleSetPiece(this.lastTouch === 'B' ? 'A' : 'B', this.lastTouch === 'A' ? 'CORNER' : 'GOAL_KICK', Engine.W - 30); }
+                }
+            }
+            if (this.owner) {
+                if (Engine.matchPhase === 'SHOOTOUT' && this.owner.role === 'GK') handleOut(); 
+                else {
+                    let offset = this.owner.side === 'A' ? 12 : -12;
+                    this.x += (this.owner.x + offset - this.x) * 0.5; this.y += (this.owner.y + 8 - this.y) * 0.5; 
+                    this.z = this.owner.z; this.vx = 0; this.vy = 0; this.vz = 0;
+                }
+            }
+        }
+        draw(ctx) {
+            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.arc(this.x, this.y, Math.max(1, 6 - this.z/25), 0, Math.PI*2); ctx.fill(); 
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(this.x, this.y - this.z, 6 + this.z/20, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle = '#000'; ctx.stroke();
+        }
+        kick(vx, vy, vz=0) { this.vx = vx; this.vy = vy; this.vz = vz; if(this.owner) this.lastTouch = this.owner.side; this.owner = null; }
+    }
+
+    class Player {
+        constructor(team, side, role, num, bx, by) {
+            this.team = team; this.side = side; this.role = role; this.num = num;
+            this.bx = bx; this.by = by; this.x = bx; this.y = by; this.z = 0; 
+            this.tx = bx; this.ty = by; this.vz = 0; this.hasBall = false; this.cd = 0; this.yellows = 0; this.isRed = false;
+            let stats = team.stats; this.gk=stats.gk; this.spd=stats.spd; this.pas=stats.pas; this.sho=stats.sho; this.def=stats.def;
+        }
+
+        update() {
+            if (this.isRed) return;
+            if (this.cd > 0) this.cd--; this.z += this.vz; if (this.z > 0) this.vz -= 1.2; else { this.z = 0; this.vz = 0; }
+            let ball = Engine.ball; let dXY = Math.hypot(this.x - ball.x, this.y - ball.y); 
+            
+            let isControl = (this === Engine.activeA || this === Engine.activeB);
+            let diffMult = (!isControl && Engine.gameMode === 'PVE' && this.side === 'B') ? Engine.difficulty : 1.0;
+            let camMode = document.getElementById('cameraMode').value;
+
+            if (Engine.state === 'PLAYING') {
+                if (this.role === 'GK') {
+                    if (Engine.matchPhase === 'SHOOTOUT' && Math.abs(ball.vx) > 10) this.tx = this.bx;
+                    else this.tx = this.bx; this.ty = Math.max(Engine.H/2 - 40, Math.min(Engine.H/2 + 40, ball.y)); 
+                    this.x += (this.tx - this.x) * (0.05 + this.spd*0.0005) * diffMult; 
+
+                    if (ball.z < 40 && dXY < 55 && Math.abs(ball.vx) > 10 && !ball.owner && this.cd <= 0) {
+                        let saveChance = Math.abs(ball.vx) > 22 ? ((this.gk/100) * 0.3) : ((this.gk/100) * 0.8); saveChance *= diffMult;
+                        if (Engine.matchPhase === 'SHOOTOUT') saveChance = 0.4 * diffMult; 
+
+                        if (Math.random() < saveChance) {
+                            ball.vx *= -0.5; ball.vy *= -0.5; ball.z = 15; Engine.floatingTexts.push(new FloatingText(this.x, this.y-20, "🧤神扑!", "#00d2ff"));
+                            this.cd = 50; if (Engine.matchPhase === 'SHOOTOUT') handleOut();
+                        } else { Engine.floatingTexts.push(new FloatingText(this.x, this.y-20, "⚠️脱手!", "#ff4757")); this.cd = 30; }
+                    }
+                    return;
+                }
+
+                if (!ball.owner && ball.z < 15 && this.z < 5 && dXY < 16 && this.cd <= 0) { ball.owner = this; ball.lastTouch = this.side; Engine.players.forEach(p => p.hasBall = false); this.hasBall = true; }
+                if (!this.hasBall && ball.owner && ball.owner.side !== this.side && dXY < 20 && this.cd <= 0) {
+                    if (Math.random() < 0.1 * diffMult) { handleFoul(ball.owner.side, ball.x, ball.y, this); return; } 
+                    else if (Math.random() < (this.def / 220) * diffMult) { 
+                        ball.owner.cd = 35; ball.owner = null; ball.kick((this.side==='A'?1:-1)*12, (Math.random()-0.5)*12, 0);
+                        Engine.floatingTexts.push(new FloatingText(this.x, this.y-20, "🛡️抢断!", "#00d2ff")); this.cd = 15;
+                    }
+                }
+
+                let dir = this.side === 'A' ? 1 : -1;
+                if (isControl) {
+                    let isSprinting = (this.side === 'A' && keys[' ']) || (this.side === 'B' && keys['shift']);
+                    let speed = isSprinting ? (this.spd * 0.08) : (this.spd * 0.05); let dx = 0, dy = 0;
+                    
+                    if (this.side === 'A') {
+                        if (camMode === '3D_1P') { if (keys.w) dx += 1; if (keys.s) dx -= 1; if (keys.a) dy -= 1; if (keys.d) dy += 1; }
+                        else { if (keys.w) dy -= 1; if (keys.s) dy += 1; if (keys.a) dx -= 1; if (keys.d) dx += 1; }
+                    } else {
+                        if (camMode === '3D_2P') { if (keys.ArrowUp) dx -= 1; if (keys.ArrowDown) dx += 1; if (keys.ArrowLeft) dy += 1; if (keys.ArrowRight) dy -= 1; }
+                        else { if (keys.ArrowUp) dy -= 1; if (keys.ArrowDown) dy += 1; if (keys.ArrowLeft) dx -= 1; if (keys.ArrowRight) dx += 1; }
+                    }
+                    if (dx !== 0 || dy !== 0) { let mag = Math.hypot(dx, dy); this.x += (dx/mag) * speed; this.y += (dy/mag) * speed; if (isSprinting && this.hasBall && Math.random() < 0.08) { ball.x += (dx/mag)*8; ball.y += (dy/mag)*8; } }
+                } else {
+                    let isActiveDef = (this.side === 'B' && this === Engine.activeB) || (this.side === 'A' && this === Engine.activeA);
+
+                    if (this.hasBall) {
+                        if (Math.abs((this.side === 'A' ? Engine.W : 0) - this.x) < 350 && Math.random() < (0.02 * diffMult)) {
+                            let angle = Math.atan2(Engine.H/2 + (Math.random()-0.5)*60 - this.y, (this.side==='A'?Engine.W:0) - this.x);
+                            let err = (100 - this.sho) * 0.005 * (Math.random() - 0.5) * (1/diffMult); 
+                            ball.kick(Math.cos(angle+err)*26, Math.sin(angle+err)*26, 4 + Math.random()*5); this.cd = 30; this.hasBall = false; Engine.floatingTexts.push(new FloatingText(this.x, this.y-20, "💥射门!", "#ff3366"));
+                        } else if (Math.random() < (0.03 * diffMult)) {
+                            let fwd = Engine.players.filter(m => m.side===this.side && m!==this && m.role!=='GK').filter(m => dir===1 ? m.x>this.x+20 : m.x<this.x-20);
+                            if (fwd.length > 0) {
+                                let t = fwd[Math.floor(Math.random() * fwd.length)]; let angle = Math.atan2(t.y - this.y, t.x - this.x);
+                                let err = (100 - this.pas) * 0.006 * (Math.random() - 0.5) * (1/diffMult); let dist = Math.hypot(t.y - this.y, t.x - this.x);
+                                ball.kick(Math.cos(angle+err)*18, Math.sin(angle+err)*18, dist > 300 ? 8 : 0); this.cd = 20; this.hasBall = false;
+                            }
+                        }
+                        if (this.hasBall) { this.tx = this.x + dir * 150; this.ty = this.y + (Engine.H/2 - this.y)*0.1; }
+                    } else if (isActiveDef && (!ball.owner || ball.owner.side !== this.side)) { this.tx = ball.x; this.ty = ball.y; } 
+                    else {
+                        if (ball.owner && ball.owner.side === this.side) {
+                            let bAdv = (ball.x - Engine.W/2) * dir; let pUp = dir * 160; 
+                            if (this.role === 'FW') pUp += dir * 150 + dir * (bAdv * 0.5); if (this.role === 'MF') pUp += dir * 80 + dir * (bAdv * 0.3); if (this.role === 'DF') pUp += dir * (bAdv * 0.15);
+                            this.tx = this.bx + pUp; this.ty = this.by + (ball.y - this.by) * 0.3; 
+                        } else if (ball.owner && ball.owner.side !== this.side) {
+                            this.tx = this.bx - (dir * 80) + (ball.x - Engine.W/2) * 0.2; this.ty = this.by + (ball.y - Engine.H/2) * 0.4; 
+                        } else { this.tx = this.bx + (ball.x - Engine.W/2) * 0.15; this.ty = this.by; }
+                    }
+                    this.tx = Math.max(50, Math.min(Engine.W - 50, this.tx));
+                    let dist = Math.hypot(this.tx - this.x, this.ty - this.y); let maxSpeed = this.hasBall ? (this.spd * 0.04) : (isActiveDef ? (this.spd * 0.06) : (this.spd * 0.03)); maxSpeed *= diffMult;
+                    if (dist > maxSpeed) { this.x += ((this.tx - this.x) / dist) * maxSpeed; this.y += ((this.ty - this.y) / dist) * maxSpeed; } else { this.x = this.tx; this.y = this.ty; }
+                }
+                this.x = Math.max(20, Math.min(Engine.W - 20, this.x)); this.y = Math.max(20, Math.min(Engine.H - 20, this.y));
+            } else if (Engine.state === 'SET_PIECE' || Engine.state === 'GOAL' || Engine.state === 'SHOOTOUT_WAIT') {
+                if (this.role !== 'GK') {
+                    if (Engine.state === 'SET_PIECE' && Engine.spData && Engine.spData.type === 'PENALTY') {
+                        if (this.side === Engine.spData.team && this === (this.side==='A'?Engine.activeA:Engine.activeB)) { this.tx = Engine.ball.x - (this.side==='A'?40:-40); this.ty = Engine.ball.y; } 
+                        else { this.tx = Engine.ball.x - (this.side==='A'?150:-150); this.ty = this.by; }
+                    } else { this.tx = this.bx; this.ty = this.by; }
+                    this.x += (this.tx - this.x) * 0.05; this.y += (this.ty - this.y) * 0.05;
+                } else {
+                    if (Engine.state === 'SET_PIECE' && Engine.spData && Engine.spData.type === 'PENALTY' && this.side !== Engine.spData.team) {
+                        this.tx = this.bx; this.ty = Engine.H/2; this.x += (this.tx - this.x) * 0.1; this.y += (this.ty - this.y) * 0.1;
+                    }
+                }
+            }
+        }
+
+        draw(ctx) {
+            if (this.isRed) return;
+            let camMode = document.getElementById('cameraMode').value;
+            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.arc(this.x+2, this.y+2, 12, 0, Math.PI*2); ctx.fill();
+            let drawY = this.y - this.z;
+            ctx.fillStyle = this.team.c; ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(this.x, drawY, 13, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+            
+            ctx.save(); ctx.translate(this.x, drawY);
+            if (camMode === '3D_1P') ctx.rotate(90 * Math.PI / 180); else if (camMode === '3D_2P') ctx.rotate(-90 * Math.PI / 180);
+            ctx.fillStyle = this.team.tc; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(this.num, 0, 1);
+            if (this.yellows > 0) { ctx.fillStyle = '#ffeb3b'; ctx.fillRect(-14, -18, 6, 8); ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.strokeRect(-14, -18, 6, 8); }
+            ctx.restore();
+
+            let isActA = Engine.activeA && Engine.activeA.num === this.num && this.side === 'A';
+            let isActB = Engine.activeB && Engine.activeB.num === this.num && this.side === 'B';
+            if (isActA || isActB) {
+                let color = this.side === 'A' ? '#00d2ff' : '#ffeb3b';
+                let isSprinting = false;
+                if (myRole === 'HOST' || myRole === 'OFFLINE') isSprinting = (this.side === 'A' && keys[' ']) || (this.side === 'B' && keys['shift']);
+                else if (Engine.lastSyncState) isSprinting = (this.side === 'A' && Engine.lastSyncState.sprA) || (this.side === 'B' && Engine.lastSyncState.sprB);
+                if (isSprinting) color = '#ff3366'; 
+
+                ctx.save(); ctx.translate(this.x, drawY);
+                if (camMode === '3D_1P') ctx.rotate(90 * Math.PI / 180); else if (camMode === '3D_2P') ctx.rotate(-90 * Math.PI / 180);
+                ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(-7, -30); ctx.lineTo(7, -30); ctx.fill(); ctx.restore();
+            }
+        }
+    }
+
+    function processAction(act) {
+        if (Engine.state === 'PLAYING') {
+            let p = act.side === 'A' ? Engine.activeA : Engine.activeB; if (!p) return;
+            if (act.type === 'switch' && (!Engine.ball.owner || Engine.ball.owner.side !== act.side)) {
+                Engine.manualDefense[act.side] = true;
+                let tps = Engine.players.filter(pl => pl.side === act.side && pl.role !== 'GK' && !pl.isRed); if(tps.length === 0) return;
+                tps.sort((a,b) => Math.hypot(a.x-Engine.ball.x, a.y-Engine.ball.y) - Math.hypot(b.x-Engine.ball.x, b.y-Engine.ball.y));
+                let nIdx = (tps.indexOf(p) + 1) % tps.length;
+                if (act.side === 'A') Engine.activeA = tps[nIdx]; else Engine.activeB = tps[nIdx];
+                Engine.floatingTexts.push(new FloatingText(tps[nIdx].x, tps[nIdx].y-35, "🔽", act.side==='A'?'#00d2ff':'#ffeb3b'));
+            } else if (p.hasBall) {
+                if (act.type === 'pass') {
+                    let mates = Engine.players.filter(m => m.side === p.side && m !== p && m.role !== 'GK');
+                    let fwd = mates.filter(m => (p.side === 'A' ? 1 : -1) === 1 ? m.x > p.x : m.x < p.x); if(fwd.length === 0) fwd = mates; 
+                    if(fwd.length > 0) {
+                        fwd.sort((a,b) => Math.hypot(a.x-p.x, a.y-p.y) - Math.hypot(b.x-p.x, b.y-p.y));
+                        let angle = Math.atan2(fwd[0].y - p.y, fwd[0].x - p.x); let error = (100 - p.pas) * 0.006 * (Math.random() - 0.5); 
+                        Engine.ball.kick(Math.cos(angle+error)*18, Math.sin(angle+error)*18, Math.hypot(fwd[0].y - p.y, fwd[0].x - p.x) > 300 ? 8 : 0); p.hasBall = false; p.cd = 20;
+                    }
+                } else if (act.type === 'shoot') {
+                    let angle = Math.atan2(Engine.H/2 + (Math.random()-0.5)*50 - p.y, (act.side === 'A' ? Engine.W : 0) - p.x);
+                    Engine.ball.kick(Math.cos(angle)*28, Math.sin(angle)*28, 5 + Math.random()*5); p.hasBall = false; p.cd = 25; Engine.floatingTexts.push(new FloatingText(p.x, p.y-20, "💥", "#ff3366"));
+                } else if (act.type === 'lob') {
+                    let angle = Math.atan2(Engine.H/2 - p.y, (act.side === 'A' ? Engine.W : 0) - p.x);
+                    Engine.ball.kick(Math.cos(angle)*15, Math.sin(angle)*15, 26); p.hasBall = false; p.cd = 30; Engine.floatingTexts.push(new FloatingText(p.x, p.y-20, "🎯", "#ffeb3b"));
+                }
+            }
+        } 
+        else if (Engine.state === 'SET_PIECE' && Engine.spData.team === act.side) {
+            clearTimeout(Engine.spTimer); let d = act.side === 'A' ? 1 : -1;
+            if (Engine.spData.type === 'PENALTY') {
+                let angle = Math.atan2(Engine.H/2 + (Math.random()-0.5)*90 - Engine.ball.y, (d===1?Engine.W:0) - Engine.ball.x);
+                Engine.ball.kick(Math.cos(angle)*30, Math.sin(angle)*30, 4); Engine.state = 'PLAYING';
+                if (Engine.spData.isShootout) resolveShootoutKick(); else log(`🎯 点球射出！`);
+            } else {
+                if (act.type === 'pass') Engine.ball.kick(d*12, (Math.random()-0.5)*15, 10);
+                else if (act.type === 'shoot') Engine.ball.kick(d*26, (Engine.H/2 - Engine.ball.y)*0.08, 12); 
+                else if (act.type === 'lob') Engine.ball.kick(d*18, (Engine.H/2 - Engine.ball.y)*0.1, 25); 
+                Engine.state = 'PLAYING';
+            }
+        }
+    }
+
+    function updateActive() {
+        if (Engine.state !== 'PLAYING' || Engine.players.length === 0) return;
+        let pA = Engine.players.filter(p => p.side === 'A' && p.role !== 'GK' && !p.isRed); let pB = Engine.players.filter(p => p.side === 'B' && p.role !== 'GK' && !p.isRed);
+        let bOwner = Engine.ball.owner;
+        if (bOwner) { if (bOwner.side === 'A') { Engine.activeA = bOwner; Engine.manualDefense.A = false; } if (bOwner.side === 'B') { Engine.activeB = bOwner; Engine.manualDefense.B = false; } }
+        if (!bOwner || bOwner.side !== 'A') { if (!Engine.manualDefense.A && pA.length > 0) Engine.activeA = pA.reduce((a, b) => Math.hypot(a.x - Engine.ball.x, a.y - Engine.ball.y) < Math.hypot(b.x - Engine.ball.x, b.y - Engine.ball.y) ? a : b); }
+        if (!bOwner || bOwner.side !== 'B') { if ((!Engine.manualDefense.B || Engine.gameMode === 'PVE') && pB.length > 0) Engine.activeB = pB.reduce((a, b) => Math.hypot(a.x - Engine.ball.x, a.y - Engine.ball.y) < Math.hypot(b.x - Engine.ball.x, b.y - Engine.ball.y) ? a : b); }
+    }
+
+    window.addEventListener('keydown', e => {
+        let key = e.key.toLowerCase();
+        if (['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','v','b','n','c','k','l','i','j',' ','shift'].includes(key)) e.preventDefault(); 
+        
+        if (myRole === 'GUEST') {
+            if (['w','a','s','d',' '].includes(key)) { if (!keys[key]) { keys[key] = true; if (conn && conn.open) conn.send({type: 'input', k: {w:keys.w, a:keys.a, s:keys.s, d:keys.d, space:keys[' ']}}); } } 
+            else if (['v','b','n','c'].includes(key)) { let map = {v:'pass', b:'shoot', n:'lob', c:'switch'}; if (conn && conn.open) conn.send({type: 'action', act: map[key]}); }
+            return;
+        }
+
+        if (keys.hasOwnProperty(key)) keys[key] = true;
+        if (['v','b','n','c'].includes(key)) processAction({side: 'A', type: {v:'pass', b:'shoot', n:'lob', c:'switch'}[key]});
+        if (myRole === 'OFFLINE' && ['k','l','i','j'].includes(key)) processAction({side: 'B', type: {k:'pass', l:'shoot', i:'lob', j:'switch'}[key]});
+    }, {passive: false});
+
+    window.addEventListener('keyup', e => {
+        let key = e.key.toLowerCase();
+        if (myRole === 'GUEST') { if (['w','a','s','d',' '].includes(key)) { keys[key] = false; if (conn && conn.open) conn.send({type: 'input', k: {w:keys.w, a:keys.a, s:keys.s, d:keys.d, space:keys[' ']}}); } return; }
+        if (keys.hasOwnProperty(key)) keys[key] = false;
+    });
+
+    function sendNetLog(msg, type) { if (myRole === 'HOST' && conn && conn.open) conn.send({type: 'log', txt: msg, lType: type}); }
+
+    function handleFoul(atkTeam, x, y, defender) {
+        let isPen = (atkTeam === 'A' && x > Engine.W - 160 && y > Engine.H/2 - 140 && y < Engine.H/2 + 140) || (atkTeam === 'B' && x < 160 && y > Engine.H/2 - 140 && y < Engine.H/2 + 140);
+        if (Math.random() < 0.3) {
+            let isRed = Math.random() < 0.05;
+            if (isRed || defender.yellows >= 1) { defender.isRed = true; Engine.floatingTexts.push(new FloatingText(defender.x, defender.y, "🟥", "#ff3366")); let str = isRed ? `🟥 直接红牌！${defender.num}号被罚下！` : `🟥 两黄一红！${defender.num}号被罚下！`; log(str, 'log-warn'); sendNetLog(str, 'log-warn'); } 
+            else { defender.yellows = 1; Engine.floatingTexts.push(new FloatingText(defender.x, defender.y, "🟨", "#ffeb3b")); log(`🟨 ${defender.num}号 黄牌！`, 'log-warn'); sendNetLog(`🟨 ${defender.num}号 黄牌！`, 'log-warn'); }
+        }
+        Engine.state = 'SET_PIECE'; Engine.spData = { team: atkTeam, type: isPen ? 'PENALTY' : 'FREEKICK' };
+        showEvent(isPen ? 'PENALTY!' : 'FOUL!'); let lmsg = `🛑 裁判鸣哨！${isPen ? '极刑点球！' : '任意球！'}`; log(lmsg, 'log-warn'); sendNetLog(lmsg, 'log-warn');
+        
+        if (isPen) { Engine.ball.x = atkTeam === 'A' ? Engine.W - 120 : 120; Engine.ball.y = Engine.H/2; } else { Engine.ball.x = x; Engine.ball.y = y; }
+        Engine.ball.kick(0,0,0);
+        
+        let isAITurn = (Engine.gameMode === 'PVE' && atkTeam === 'B');
+        Engine.spTimer = setTimeout(() => {
+            if (Engine.state !== 'SET_PIECE') return;
+            if (isPen) Engine.ball.kick((atkTeam==='A'?1:-1)*28, (Math.random()-0.5)*10, 5); else Engine.ball.kick((atkTeam==='A'?1:-1)*24, (Engine.H/2 - Engine.ball.y)*0.08, 14);
+            Engine.state = 'PLAYING';
+        }, isAITurn ? 1500 : 6000); 
+    }
+
+    function handleSetPiece(team, type, x=Engine.W/2) {
+        if (Engine.matchPhase === 'SHOOTOUT') { handleOut(); return; }
+        Engine.state = 'SET_PIECE'; Engine.spData = { team: team, type: type };
+        if (type === 'CORNER') { showEvent('CORNER!'); Engine.ball.x = team === 'A' ? Engine.W-20 : 20; Engine.ball.y = Engine.ball.y < Engine.H/2 ? 20 : Engine.H-20; } 
+        else { Engine.ball.x = Engine.W/2; Engine.ball.y = Engine.H/2; Engine.state = 'PLAYING'; return; }
+        Engine.ball.kick(0,0,0);
+        let isAITurn = (Engine.gameMode === 'PVE' && team === 'B');
+        Engine.spTimer = setTimeout(() => {
+            if (Engine.state !== 'SET_PIECE') return;
+            Engine.ball.kick((team==='A'?1:-1)*(Engine.ball.x<100?1:-1)*18, Engine.ball.y<100?15:-15, 26); Engine.state = 'PLAYING';
+        }, isAITurn ? 1500 : 6000); 
+    }
+
+    function handleGoal(team) {
+        if (Engine.matchPhase === 'SHOOTOUT') {
+            if (Engine.state === 'SHOOTOUT_WAIT') return;
+            Engine.state = 'SHOOTOUT_WAIT'; Engine.shootout['score' + team]++; updateShootoutScore();
+            showEvent('GOAL!'); log(`✅ 点球罚进！`, 'log-goal'); sendNetLog(`✅ 点球罚进！`, 'log-goal'); setTimeout(endShootoutTurn, 2000); return;
+        }
+        Engine.state = 'GOAL'; Engine.score[team]++;
+        showEvent('GOOOOOAL!!!'); log(`⚽ 球进啦！！！精彩的进球！`, 'log-goal'); sendNetLog(`⚽ 球进啦！！！精彩的进球！`, 'log-goal');
+        setTimeout(() => { Engine.ball.x = Engine.W/2; Engine.ball.y = Engine.H/2; Engine.ball.kick(0,0,0);
+            Engine.players.forEach(p => { p.hasBall = false; p.cd=0; p.z=0; p.x = p.bx; p.y = p.by; p.tx = p.bx; p.ty = p.by; });
+            Engine.state = 'PLAYING'; Engine.manualDefense = { A: false, B: false }; 
+        }, 3500);
+    }
+
+    function handleOut() {
+        if (Engine.state === 'SHOOTOUT_WAIT') return; Engine.state = 'SHOOTOUT_WAIT'; showEvent('MISS!'); log(`❌ 罚丢！`, 'log-warn'); sendNetLog(`❌ 罚丢！`, 'log-warn'); setTimeout(endShootoutTurn, 2000);
+    }
+
+    function startShootout() {
+        Engine.state = 'SHOOTOUT_WAIT'; Engine.shootout = { round: 1, turn: 'A', scoreA: 0, scoreB: 0, kicksA: 0, kicksB: 0 }; Engine.min = 120;
+        updateShootoutScore(); setTimeout(nextShootoutKick, 3000);
+    }
+
+    function updateShootoutScore() { document.getElementById('scoreA').innerText = `${Engine.score.A} (${Engine.shootout.scoreA})`; document.getElementById('scoreB').innerText = `${Engine.score.B} (${Engine.shootout.scoreB})`; }
+
+    function endShootoutTurn() {
+        if (Engine.shootout.turn === 'A') { Engine.shootout.kicksA++; Engine.shootout.turn = 'B'; } else { Engine.shootout.kicksB++; Engine.shootout.turn = 'A'; Engine.shootout.round++; }
+        updateShootoutScore(); nextShootoutKick();
+    }
+
+    function nextShootoutKick() {
+        if (Engine.state === 'STOPPED') return;
+        let remA = 5 - Engine.shootout.kicksA; let remB = 5 - Engine.shootout.kicksB; let diff = Engine.shootout.scoreA - Engine.shootout.scoreB;
+        let canCatchUp = false;
+        if (Engine.shootout.kicksA < 5 || Engine.shootout.kicksB < 5) {
+            if (Engine.shootout.scoreA > Engine.shootout.scoreB + remB) canCatchUp = false; else if (Engine.shootout.scoreB > Engine.shootout.scoreA + remA) canCatchUp = false; else canCatchUp = true;
+        } else { if (Engine.shootout.kicksA === Engine.shootout.kicksB && diff !== 0) canCatchUp = false; else canCatchUp = true; }
+        
+        if (!canCatchUp) { log(`🏆 点球大战结束！${diff > 0 ? Engine.teams.A.name : Engine.teams.B.name} 获胜！`, 'log-goal'); sendNetLog(`🏆 点球大战结束！${diff > 0 ? Engine.teams.A.name : Engine.teams.B.name} 获胜！`, 'log-goal'); endGame(); return; }
+        
+        Engine.state = 'SET_PIECE'; let team = Engine.shootout.turn; Engine.spData = { team: team, type: 'PENALTY', isShootout: true };
+        Engine.ball.x = team === 'A' ? Engine.W - 120 : 120; Engine.ball.y = Engine.H/2; Engine.ball.kick(0,0,0);
+        let actP = Engine.players.find(p => p.side === team && p.role !== 'GK'); if (team === 'A') Engine.activeA = actP; else Engine.activeB = actP;
+        
+        showEvent('PENALTY'); log(`⚽ 第 ${Engine.shootout.round} 轮点球，${team === 'A' ? '1P' : '2P'} 主罚！`);
+        Engine.players.forEach(p => {
+            if (p.role === 'GK' && p.side !== team) { p.tx = p.bx; p.ty = Engine.H/2; p.x = p.tx; p.y = p.ty; } 
+            else if (p === actP) { p.tx = Engine.ball.x - (team==='A'?40:-40); p.ty = Engine.ball.y; p.x = p.tx; p.y = p.ty; } 
+            else { p.tx = Engine.W/2; p.ty = -100; p.x = p.tx; p.y = p.ty; }
+        });
+        
+        if (Engine.gameMode === 'PVE' && team === 'B') {
+            Engine.spTimer = setTimeout(() => {
+                if (Engine.state === 'SET_PIECE') {
+                    let angle = Math.atan2(Engine.H/2 + (Math.random()-0.5)*90 - Engine.ball.y, -Engine.ball.x) + ((100 - actP.sho)*0.005*(Math.random()-0.5));
+                    Engine.ball.kick(Math.cos(angle)*30, Math.sin(angle)*30, 4); Engine.state = 'PLAYING'; resolveShootoutKick();
+                }
+            }, 2000);
+        }
+    }
+
+    function resolveShootoutKick() { setTimeout(() => { if (Engine.state === 'SHOOTOUT_WAIT') return; Engine.state = 'SHOOTOUT_WAIT'; showEvent('SAVED!'); log(`🧤 门将神勇化解点球！`, 'log-warn'); sendNetLog(`🧤 门将神勇化解点球！`, 'log-warn'); endShootoutTurn(); }, 3000); }
+
+    function endGame() {
+        clearInterval(Engine.clockId); cancelAnimationFrame(Engine.loopId); Engine.state = 'STOPPED'; document.getElementById('startBtn').innerText = "再战一场"; 
+        ['startBtn', 'modeSelect', 'diffSelect', 'formA', 'formB', 'teamA', 'teamB', 'cameraMode'].forEach(id => document.getElementById(id).disabled = false);
+        log(`🏁 比赛结束！最终比分 ${Engine.score.A} : ${Engine.score.B}`, 'log-hl'); showEvent('FULL TIME');
+    }
+
+    function initMatchObj(cfg) {
+        const tA = TEAMS[cfg.tA]; const tB = TEAMS[cfg.tB]; Engine.teams = { A: tA, B: tB };
+        document.getElementById('titleA').innerText = tA.id; document.getElementById('titleB').innerText = tB.id;
+        document.getElementById('nameA').style.color = tA.c==='#ffffff'?'#ccc':tA.c; document.getElementById('nameB').style.color = tB.c==='#ffffff'?'#ccc':tB.c;
+        document.getElementById('scoreA').innerText = '0'; document.getElementById('scoreB').innerText = '0';
+        document.getElementById('log-panel').innerHTML = ''; Engine.score = {A:0, B:0}; Engine.min = 0; Engine.matchPhase = 'REGULAR'; Engine.shootout = null;
+
+        const parseF = (formStr, side) => {
+            let pts = formStr.split('-').map(Number); let pos = [{ x: side === 'A' ? 60 : 1140, y: 325, r: 'GK' }];
+            let sX = side === 'A' ? 220 : 980; let eX = side === 'A' ? 550 : 650; let sPx = (eX - sX) / (pts.length - 1);
+            let rls = ['DF', 'MF', 'FW'];
+            pts.forEach((c, i) => { let cX = sX + sPx * i; let sPy = 540 / c; let sY = 325 - (540 / 2) + (sPy / 2); for (let j = 0; j < c; j++) pos.push({ x: cX, y: sY + j * sPy, r: rls[i] || 'MF' }); }); return pos;
+        };
+        const fA = parseF(cfg.fA, 'A'); const fB = parseF(cfg.fB, 'B');
+        Engine.players = []; Engine.manualDefense = { A: false, B: false };
+        fA.forEach((pos, i) => Engine.players.push(new Player(tA, 'A', pos.r, i+1, pos.x, pos.y))); fB.forEach((pos, i) => Engine.players.push(new Player(tB, 'B', pos.r, i+1, pos.x, pos.y)));
+        Engine.ball = new Ball(); Engine.floatingTexts = []; Engine.state = 'PLAYING';
+    }
+
+    function updateScoreboardUI() {
+        const tA = TEAMS[document.getElementById('teamA').value]; const tB = TEAMS[document.getElementById('teamB').value];
+        document.getElementById('attrA').innerText = `SPD:${tA.stats.spd} PAS:${tA.stats.pas} SHO:${tA.stats.sho} GK:${tA.stats.gk}`;
+        document.getElementById('attrB').innerText = `SPD:${tB.stats.spd} PAS:${tB.stats.pas} SHO:${tB.stats.sho} GK:${tB.stats.gk}`;
+    }
+
+    function initMatch() {
+        Engine.gameMode = document.getElementById('modeSelect').value; Engine.difficulty = parseFloat(document.getElementById('diffSelect').value);
+        let cfg = { tA: document.getElementById('teamA').value, tB: document.getElementById('teamB').value, fA: document.getElementById('formA').value, fB: document.getElementById('formB').value };
+        if (conn && conn.open && myRole === 'HOST') conn.send({type: 'start', cfg: cfg});
+        initMatchObj(cfg); updateActive(); log(`⚽ 比赛在 ${myRole} 端点火启动！支持加时点球与红黄牌。`, 'log-hl'); sendNetLog(`⚽ 比赛在 Host 端启动，已同步！`, 'log-hl');
+    }
+
+    function drawPitch() {
+        let ctx = Engine.ctx, W = Engine.W, H = Engine.H;
+        ctx.fillStyle = '#1e5e24'; ctx.fillRect(-2000, -2000, W+4000, H+4000);
+        for(let i=0; i<16; i++) { ctx.fillStyle = i%2===0?'#226829':'#1e5e24'; ctx.fillRect(i*(W/16), 0, W/16, H); }
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(40, 40, W-80, H-80); ctx.beginPath(); ctx.moveTo(W/2, 40); ctx.lineTo(W/2, H-40); ctx.stroke(); ctx.beginPath(); ctx.arc(W/2, H/2, 80, 0, Math.PI*2); ctx.stroke();
+        let dA = (x, l) => { ctx.strokeRect(l?x:x-160, H/2-140, 160, 280); ctx.strokeRect(l?x:x-50, H/2-60, 50, 120); ctx.beginPath(); ctx.arc(l?x+160:x-160, H/2, 60, l?-1.04:2.1, l?1.04:4.2); ctx.stroke(); };
+        dA(40, true); dA(W-40, false); ctx.fillStyle = '#ccc'; ctx.fillRect(20, H/2-50, 20, 100); ctx.fillRect(W-40, H/2-50, 20, 100);
+    }
+
+    function loop() {
+        if (Engine.state === 'STOPPED') return;
+        
+        if (myRole !== 'GUEST') {
+            updateActive(); Engine.players.forEach(p => p.update()); Engine.ball.update();
+            if (myRole === 'HOST' && conn && conn.open) {
+                conn.send({ type: 'state', state: Engine.state, phase: Engine.matchPhase, min: Engine.min, sA: Engine.score.A, sB: Engine.score.B,
+                    b: {x: Engine.ball.x, y: Engine.ball.y, z: Engine.ball.z}, p: Engine.players.map(p => ({x: p.x, y: p.y, z: p.z, yel: p.yellows, red: p.isRed})),
+                    sprA: keys[' '], sprB: keys['shift'], so: Engine.shootout });
+            }
+        } else if (Engine.lastSyncState) {
+            let ls = Engine.lastSyncState; Engine.ball.x = ls.b.x; Engine.ball.y = ls.b.y; Engine.ball.z = ls.b.z;
+            ls.p.forEach((d, i) => { if(Engine.players[i]) { Engine.players[i].x = d.x; Engine.players[i].y = d.y; Engine.players[i].z = d.z; Engine.players[i].yellows = d.yel; Engine.players[i].isRed = d.red;} });
+            updateActive(); document.getElementById('scoreA').innerText = ls.sA; document.getElementById('scoreB').innerText = ls.sB; 
+            if(ls.phase !== 'SHOOTOUT') document.getElementById('gameTime').innerText = ls.min; else document.getElementById('gameTime').innerText = 'PEN';
+        }
+
+        let camMode = document.getElementById('cameraMode').value; let pitch = document.getElementById('pitch'); let container = document.getElementById('game-container');
+        if (camMode !== '2D') {
+            container.style.perspective = '1200px'; let target = (camMode === '3D_1P') ? Engine.activeA : Engine.activeB; if (!target) target = Engine.ball; 
+            Engine.camX += (target.x - Engine.camX) * 0.1; Engine.camY += (target.y - Engine.camY) * 0.1; let rotZ = (camMode === '3D_1P') ? -90 : 90; 
+            pitch.style.transformOrigin = `${Engine.camX}px ${Engine.camY}px`; pitch.style.transform = `translate(${600 - Engine.camX}px, ${500 - Engine.camY}px) rotateX(55deg) rotateZ(${rotZ}deg) scale(1.6)`;
+        } else { container.style.perspective = 'none'; pitch.style.transform = 'none'; }
+
+        drawPitch(); Engine.players.sort((a,b) => a.y - b.y).forEach(p => p.draw(Engine.ctx)); Engine.ball.draw(Engine.ctx);
+        Engine.floatingTexts.forEach((ft, idx) => { ft.update(); ft.draw(Engine.ctx); if(ft.life<=0) Engine.floatingTexts.splice(idx,1); });
+        Engine.loopId = requestAnimationFrame(loop);
+    }
+
+    document.getElementById('startBtn').addEventListener('click', () => {
+        if(Engine.state !== 'STOPPED') { cancelAnimationFrame(Engine.loopId); clearInterval(Engine.clockId); }
+        initMatch(); document.getElementById('startBtn').innerText = "比赛火热进行中..."; 
+        ['startBtn', 'modeSelect', 'diffSelect', 'formA', 'formB', 'teamA', 'teamB', 'cameraMode'].forEach(id => document.getElementById(id).disabled = true);
+        loop();
+        
+        Engine.clockId = setInterval(() => {
+            if (myRole === 'GUEST') return; 
+            if (Engine.state === 'PLAYING') { if (Engine.matchPhase === 'REGULAR' || Engine.matchPhase === 'EXTRA_TIME') Engine.min++; }
+            let timeDisplay = Engine.matchPhase === 'SHOOTOUT' ? 'PEN' : Engine.min; document.getElementById('gameTime').innerText = timeDisplay;
+            
+            if (Engine.min === 90 && Engine.matchPhase === 'REGULAR') {
+                if (Engine.score.A === Engine.score.B) {
+                    Engine.matchPhase = 'EXTRA_TIME'; Engine.state = 'SET_PIECE'; log(`⏱️ 常规时间战平！进入加时赛！`, 'log-hl'); sendNetLog(`⏱️ 常规时间战平！进入加时赛！`, 'log-hl'); showEvent('EXTRA TIME');
+                    setTimeout(() => { Engine.ball.x = Engine.W/2; Engine.ball.y = Engine.H/2; Engine.ball.kick(0,0,0); Engine.players.forEach(p => { p.x = p.bx; p.y = p.by; p.tx = p.bx; p.ty = p.by; p.hasBall = false; p.cd=0;}); Engine.state = 'PLAYING'; }, 3000);
+                } else endGame();
+            } else if (Engine.min === 120 && Engine.matchPhase === 'EXTRA_TIME') {
+                if (Engine.score.A === Engine.score.B) {
+                    Engine.matchPhase = 'SHOOTOUT'; Engine.state = 'SET_PIECE'; log(`⚖️ 120分钟难分伯仲！进入点球大战！`, 'log-hl'); sendNetLog(`⚖️ 120分钟难分伯仲！进入点球大战！`, 'log-hl'); showEvent('PENALTIES'); setTimeout(startShootout, 3000);
+                } else endGame();
+            }
+        }, 1500); 
+    });
+
+    document.getElementById('modeSelect').addEventListener('change', (e) => { document.getElementById('diffSelect').style.display = e.target.value === 'PVE' ? 'inline-block' : 'none'; });
+
+    window.onload = () => {
+        let sA = document.getElementById('teamA'), sB = document.getElementById('teamB');
+        for(let id in TEAMS) { let name = TEAMS[id].name + (id === 'CPV' ? ' (特化)' : ''); sA.add(new Option(name, id)); sB.add(new Option(name, id)); }
+        sA.selectedIndex = 0; sB.selectedIndex = 8; 
+        sA.addEventListener('change', updateScoreboardUI); sB.addEventListener('change', updateScoreboardUI);
+        drawPitch(); updateScoreboardUI();
+    };
+</script>
+</body>
+</html>
